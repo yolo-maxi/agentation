@@ -26,19 +26,19 @@ src/
 ├── index.ts           # Main exports
 ├── types.ts           # TypeScript types (Annotation, etc.)
 ├── components/
-│   ├── icons.tsx      # SVG icons with morph animations
-│   ├── icons-css.tsx  # CSS-only icon variants
-│   ├── annotation-popup/   # Popup for entering feedback
-│   └── page-toolbar/       # Main floating toolbar
+│   ├── icons.tsx      # SVG icons
+│   ├── annotation-popup/       # Popup with framer-motion (optional export)
+│   ├── annotation-popup-css/   # Popup with CSS animations
+│   └── page-toolbar-css/       # Main floating toolbar (CSS-only)
 └── utils/
     ├── element-identification.ts  # Smart DOM element naming
     └── storage.ts                 # localStorage helpers
 ```
 
-## Two Component Variants
+## Exports
 
-1. **Agentation** (default) - Uses framer-motion for smooth animations
-2. **AgentationCSS** - Zero runtime deps, CSS-only animations
+- **`Agentation`** — The main component. CSS-only animations, no framer-motion.
+- **`AnnotationPopup`** — Optional export for custom UIs. Uses framer-motion (optional peer dep).
 
 ## Testing Changes
 
@@ -46,17 +46,6 @@ src/
 2. Check the example app still works: `pnpm dev`
 3. Verify no TypeScript errors in consumers
 
-## Before v1 Release (see PLAN.md)
+## Before v1 Release
 
-High priority:
-- [ ] Convert SCSS to CSS-in-JS or CSS variables for easier adoption
-- [ ] Add configuration props (theme, position, storage adapter)
-- [ ] Abstract storage layer for custom implementations
-
-Medium priority:
-- [ ] Export TypeScript types properly
-- [ ] Add position prop for toolbar placement
-
-Low priority:
-- [ ] Add tests
-- [ ] Consider removing framer-motion dependency option
+See PLAN.md for detailed roadmap.
