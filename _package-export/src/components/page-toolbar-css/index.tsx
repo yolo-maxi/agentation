@@ -1921,7 +1921,7 @@ export function PageFeedbackToolbarCSS({
               <span className={styles.batchPanelTitle}>
                 {annotations.filter(a => !a.status || a.status === 'draft').length} draft
                 {annotations.filter(a => a.status === 'pending' || a.status === 'processing').length > 0 && (
-                  <>, {annotations.filter(a => a.status === 'pending' || a.status === 'processing').length} pending</>
+                  <>, {annotations.filter(a => a.status === 'pending' || a.status === 'processing').length} implementing</>
                 )}
                 {annotations.filter(a => a.status === 'completed').length > 0 && (
                   <>, {annotations.filter(a => a.status === 'completed').length} done</>
@@ -1944,7 +1944,7 @@ export function PageFeedbackToolbarCSS({
                       <span className={styles.statusDraft}>draft</span>
                     )}
                     {annotation.status === 'pending' && (
-                      <span className={styles.statusPending}><IconClock size={10} /> pending</span>
+                      <span className={styles.statusPending}><IconClock size={10} /> implementing</span>
                     )}
                     {annotation.status === 'processing' && (
                       <span className={styles.statusProcessing}><IconSpinner size={10} /> processing</span>
@@ -2480,7 +2480,7 @@ export function PageFeedbackToolbarCSS({
                             </>
                           )}
                           {annotation.status === 'pending' && (
-                            <span className={styles.markerStatus}><IconClock size={12} /> pending</span>
+                            <span className={styles.markerStatus}><IconClock size={12} /> implementing</span>
                           )}
                           {annotation.status === 'processing' && (
                             <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
@@ -2640,7 +2640,7 @@ export function PageFeedbackToolbarCSS({
                             </>
                           )}
                           {annotation.status === 'pending' && (
-                            <span className={styles.markerStatus}><IconClock size={12} /> pending</span>
+                            <span className={styles.markerStatus}><IconClock size={12} /> implementing</span>
                           )}
                           {annotation.status === 'processing' && (
                             <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
