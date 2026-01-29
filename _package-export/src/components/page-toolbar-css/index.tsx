@@ -1855,6 +1855,9 @@ export function PageFeedbackToolbarCSS({
                     {annotation.status === 'completed' && (
                       <span className={styles.statusCompleted}><IconCheckSmall size={10} /> done</span>
                     )}
+                    {annotation.status === 'interrupted' && (
+                      <span className={styles.statusInterrupted}><IconPause size={10} /> interrupted</span>
+                    )}
                     {annotation.status === 'failed' && (
                       <span className={styles.statusFailed}><IconXmark size={10} /> failed</span>
                     )}
