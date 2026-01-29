@@ -13,13 +13,15 @@ Agentation is a visual feedback tool for web apps. Click elements to annotate th
 ## Install
 
 ```bash
-npm install agentation
+npm install agentation-flow
 ```
+
+> Note: This is a fork of the original [agentation](https://www.npmjs.com/package/agentation) with API mode and multiplayer. If you just need clipboard mode, use the original.
 
 ## Basic Usage (Clipboard Mode)
 
 ```tsx
-import { Agentation } from 'agentation';
+import { Agentation } from 'agentation-flow';
 
 function App() {
   return (
@@ -38,7 +40,7 @@ Click the toolbar in the bottom-right corner, then click any element to annotate
 Send annotations to a backend API instead of clipboard:
 
 ```tsx
-import { Agentation, type Annotation } from 'agentation';
+import { Agentation, type Annotation } from 'agentation-flow';
 
 function App() {
   const handleSend = async (annotations: Annotation[]) => {
