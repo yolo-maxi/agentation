@@ -2,6 +2,8 @@
 // Shared Types
 // =============================================================================
 
+export type AnnotationStatus = "draft" | "pending" | "processing" | "completed" | "failed";
+
 export type Annotation = {
   id: string;
   x: number; // % of viewport width
@@ -20,6 +22,16 @@ export type Annotation = {
   accessibility?: string;
   isMultiSelect?: boolean; // true if created via drag selection
   isFixed?: boolean; // true if element has fixed/sticky positioning (marker stays fixed)
+  // API integration fields
+  status?: AnnotationStatus;
+  remoteId?: string; // ID returned from API after submission
+};
+
+export type SendResult = {
+  id: string;
+  remoteId: string;
+  success: boolean;
+  error?: string;
 };
 
 // TODO: Add configuration types when abstracting config

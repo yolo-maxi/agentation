@@ -34,6 +34,10 @@ import {
   IconSun,
   IconMoon,
   IconXmarkLarge,
+  IconSend,
+  IconPencil,
+  IconSpinner,
+  IconClock,
 } from "../icons";
 import {
   identifyElement,
@@ -261,6 +265,20 @@ export type PageFeedbackToolbarCSSProps = {
   onCopy?: (markdown: string) => void;
   /** Whether to copy to clipboard when the copy button is clicked. Defaults to true. */
   copyToClipboard?: boolean;
+  
+  // === API Mode Props ===
+  /** Enable API mode - shows batch panel and send button instead of copy */
+  apiMode?: boolean;
+  /** API endpoint for submitting annotations */
+  apiEndpoint?: string;
+  /** Edit token for API authentication */
+  editToken?: string;
+  /** Callback fired when annotations are sent to API. Return remote IDs for tracking. */
+  onSend?: (annotations: Annotation[]) => Promise<Array<{ id: string; remoteId: string; success: boolean; error?: string }>>;
+  /** Callback fired when annotation status changes (from polling) */
+  onStatusChange?: (annotation: Annotation) => void;
+  /** Polling interval in ms for checking annotation status. Default: 20000 (20s) */
+  pollInterval?: number;
 };
 
 /** Alias for PageFeedbackToolbarCSSProps */
@@ -280,6 +298,13 @@ export function PageFeedbackToolbarCSS({
   onAnnotationsClear,
   onCopy,
   copyToClipboard = true,
+  // API mode props
+  apiMode = false,
+  apiEndpoint,
+  editToken,
+  onSend,
+  onStatusChange,
+  pollInterval = 20000,
 }: PageFeedbackToolbarCSSProps = {}) {
   const [isActive, setIsActive] = useState(false);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
@@ -336,6 +361,11 @@ export function PageFeedbackToolbarCSS({
   const [settings, setSettings] = useState<ToolbarSettings>(DEFAULT_SETTINGS);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showEntranceAnimation, setShowEntranceAnimation] = useState(false);
+
+  // API mode state
+  const [isSending, setIsSending] = useState(false);
+  const [showBatchPanel, setShowBatchPanel] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Draggable toolbar state
   const [toolbarPosition, setToolbarPosition] = useState<{
@@ -1420,6 +1450,126 @@ export function PageFeedbackToolbarCSS({
     onCopy,
   ]);
 
+  // Send single annotation (API mode)
+  const sendAnnotation = useCallback(async (annotation: Annotation) => {
+    if (!apiMode || !onSend) return;
+    
+    // Mark as pending
+    setAnnotations(prev => prev.map(a => 
+      a.id === annotation.id ? { ...a, status: 'pending' as const } : a
+    ));
+
+    try {
+      const results = await onSend([annotation]);
+      const result = results[0];
+      
+      setAnnotations(prev => prev.map(a => {
+        if (a.id === annotation.id) {
+          return {
+            ...a,
+            status: result.success ? 'pending' as const : 'failed' as const,
+            remoteId: result.remoteId,
+          };
+        }
+        return a;
+      }));
+    } catch {
+      setAnnotations(prev => prev.map(a => 
+        a.id === annotation.id ? { ...a, status: 'failed' as const } : a
+      ));
+    }
+  }, [apiMode, onSend]);
+
+  // Send all draft annotations (API mode)
+  const sendAllAnnotations = useCallback(async () => {
+    if (!apiMode || !onSend) return;
+    
+    const drafts = annotations.filter(a => !a.status || a.status === 'draft');
+    if (drafts.length === 0) return;
+
+    setIsSending(true);
+
+    // Mark all as pending
+    setAnnotations(prev => prev.map(a => 
+      drafts.some(d => d.id === a.id) ? { ...a, status: 'pending' as const } : a
+    ));
+
+    try {
+      const results = await onSend(drafts);
+      
+      setAnnotations(prev => prev.map(a => {
+        const result = results.find(r => r.id === a.id);
+        if (result) {
+          return {
+            ...a,
+            status: result.success ? 'pending' as const : 'failed' as const,
+            remoteId: result.remoteId,
+          };
+        }
+        return a;
+      }));
+    } catch {
+      setAnnotations(prev => prev.map(a => 
+        drafts.some(d => d.id === a.id) ? { ...a, status: 'failed' as const } : a
+      ));
+    } finally {
+      setIsSending(false);
+    }
+  }, [apiMode, onSend, annotations]);
+
+  // Poll for status updates (API mode)
+  const pollStatus = useCallback(async () => {
+    if (!apiMode || !apiEndpoint || !editToken) return;
+    
+    const pendingAnnotations = annotations.filter(a => 
+      a.status === 'pending' || a.status === 'processing'
+    );
+    if (pendingAnnotations.length === 0) return;
+
+    try {
+      const response = await fetch(`${apiEndpoint}/api/annotations?editToken=${encodeURIComponent(editToken)}`);
+      if (!response.ok) return;
+      
+      const remoteAnnotations = await response.json();
+      
+      setAnnotations(prev => prev.map(a => {
+        if (!a.remoteId) return a;
+        const remote = remoteAnnotations.find((r: { id: string; status?: string }) => r.id === a.remoteId);
+        if (remote && remote.status !== a.status) {
+          const updated = { ...a, status: remote.status as Annotation['status'] };
+          onStatusChange?.(updated);
+          return updated;
+        }
+        return a;
+      }));
+    } catch {
+      // Polling failed, will retry on next interval
+    }
+  }, [apiMode, apiEndpoint, editToken, annotations, onStatusChange]);
+
+  // Start/stop polling based on pending annotations
+  useEffect(() => {
+    if (!apiMode) return;
+    
+    const hasPending = annotations.some(a => 
+      a.status === 'pending' || a.status === 'processing'
+    );
+    
+    if (hasPending && !pollingRef.current) {
+      pollingRef.current = setInterval(pollStatus, pollInterval);
+    } else if (!hasPending && pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [apiMode, annotations, pollStatus, pollInterval]);
+
   // Toolbar dragging - mousemove and mouseup
   useEffect(() => {
     if (!dragStartPos) return;
@@ -1667,6 +1817,90 @@ export function PageFeedbackToolbarCSS({
             : undefined
         }
       >
+        {/* Batch Panel (API mode) */}
+        {apiMode && isActive && hasAnnotations && (
+          <div className={`${styles.batchPanel} ${!isDarkMode ? styles.light : ""}`}>
+            <div className={styles.batchPanelHeader}>
+              <span className={styles.batchPanelTitle}>
+                {annotations.filter(a => !a.status || a.status === 'draft').length} draft
+                {annotations.filter(a => a.status === 'pending' || a.status === 'processing').length > 0 && (
+                  <>, {annotations.filter(a => a.status === 'pending' || a.status === 'processing').length} pending</>
+                )}
+                {annotations.filter(a => a.status === 'completed').length > 0 && (
+                  <>, {annotations.filter(a => a.status === 'completed').length} done</>
+                )}
+              </span>
+            </div>
+            <div className={styles.batchPanelList}>
+              {annotations.map((annotation, index) => (
+                <div
+                  key={annotation.id}
+                  className={`${styles.batchItem} ${annotation.status === 'completed' ? styles.completed : ''} ${annotation.status === 'failed' ? styles.failed : ''}`}
+                >
+                  <span className={styles.batchItemNumber}>{index + 1}</span>
+                  <span className={styles.batchItemElement}>{annotation.element}</span>
+                  <span className={styles.batchItemComment}>
+                    {annotation.comment.length > 30 ? annotation.comment.slice(0, 30) + '...' : annotation.comment}
+                  </span>
+                  <div className={styles.batchItemStatus}>
+                    {(!annotation.status || annotation.status === 'draft') && (
+                      <span className={styles.statusDraft}>draft</span>
+                    )}
+                    {annotation.status === 'pending' && (
+                      <span className={styles.statusPending}><IconClock size={12} /> pending</span>
+                    )}
+                    {annotation.status === 'processing' && (
+                      <span className={styles.statusProcessing}><IconSpinner size={12} /> processing</span>
+                    )}
+                    {annotation.status === 'completed' && (
+                      <span className={styles.statusCompleted}><IconCheckSmall size={12} /> done</span>
+                    )}
+                    {annotation.status === 'failed' && (
+                      <span className={styles.statusFailed}><IconXmark size={12} /> failed</span>
+                    )}
+                  </div>
+                  <div className={styles.batchItemActions}>
+                    {(!annotation.status || annotation.status === 'draft' || annotation.status === 'failed') && (
+                      <>
+                        <button
+                          className={styles.batchItemAction}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditAnnotation(annotation);
+                          }}
+                          title="Edit"
+                        >
+                          <IconPencil size={14} />
+                        </button>
+                        <button
+                          className={styles.batchItemAction}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            sendAnnotation(annotation);
+                          }}
+                          title="Send"
+                        >
+                          <IconSend size={14} />
+                        </button>
+                        <button
+                          className={`${styles.batchItemAction} ${styles.danger}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteAnnotation(annotation.id);
+                          }}
+                          title="Delete"
+                        >
+                          <IconTrashAlt size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {/* Morphing container */}
         <div
           className={`${styles.toolbarContainer} ${!isDarkMode ? styles.light : ""} ${isActive ? styles.expanded : styles.collapsed} ${showEntranceAnimation ? styles.entrance : ""} ${isDraggingToolbar ? styles.dragging : ""}`}
@@ -1755,24 +1989,45 @@ export function PageFeedbackToolbarCSS({
               </span>
             </div>
 
-            <div className={styles.buttonWrapper}>
-              <button
-                className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  hideTooltipsUntilMouseLeave();
-                  copyOutput();
-                }}
-                disabled={!hasAnnotations}
-                data-active={copied}
-              >
-                <IconCopyAnimated size={24} copied={copied} />
-              </button>
-              <span className={styles.buttonTooltip}>
-                Copy feedback
-                <span className={styles.shortcut}>C</span>
-              </span>
-            </div>
+            {apiMode ? (
+              <div className={styles.buttonWrapper}>
+                <button
+                  className={`${styles.controlButton} ${styles.sendButton} ${!isDarkMode ? styles.light : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideTooltipsUntilMouseLeave();
+                    sendAllAnnotations();
+                  }}
+                  disabled={!hasAnnotations || isSending || !annotations.some(a => !a.status || a.status === 'draft')}
+                  data-active={isSending}
+                >
+                  {isSending ? <IconSpinner size={24} /> : <IconSend size={24} />}
+                </button>
+                <span className={styles.buttonTooltip}>
+                  Send all
+                  <span className={styles.shortcut}>S</span>
+                </span>
+              </div>
+            ) : (
+              <div className={styles.buttonWrapper}>
+                <button
+                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideTooltipsUntilMouseLeave();
+                    copyOutput();
+                  }}
+                  disabled={!hasAnnotations}
+                  data-active={copied}
+                >
+                  <IconCopyAnimated size={24} copied={copied} />
+                </button>
+                <span className={styles.buttonTooltip}>
+                  Copy feedback
+                  <span className={styles.shortcut}>C</span>
+                </span>
+              </div>
+            )}
 
             <div className={styles.buttonWrapper}>
               <button
@@ -2099,6 +2354,53 @@ export function PageFeedbackToolbarCSS({
                       <span className={styles.markerNote}>
                         {annotation.comment}
                       </span>
+                      {apiMode && (
+                        <div className={styles.markerActions}>
+                          {(!annotation.status || annotation.status === 'draft' || annotation.status === 'failed') && (
+                            <>
+                              <button
+                                className={styles.markerAction}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditAnnotation(annotation);
+                                }}
+                                title="Edit"
+                              >
+                                <IconPencil size={12} />
+                              </button>
+                              <button
+                                className={styles.markerAction}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  sendAnnotation(annotation);
+                                }}
+                                title="Send"
+                              >
+                                <IconSend size={12} />
+                              </button>
+                              <button
+                                className={`${styles.markerAction} ${styles.danger}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteAnnotation(annotation.id);
+                                }}
+                                title="Delete"
+                              >
+                                <IconTrashAlt size={12} />
+                              </button>
+                            </>
+                          )}
+                          {annotation.status === 'pending' && (
+                            <span className={styles.markerStatus}><IconClock size={12} /> pending</span>
+                          )}
+                          {annotation.status === 'processing' && (
+                            <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
+                          )}
+                          {annotation.status === 'completed' && (
+                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2212,6 +2514,53 @@ export function PageFeedbackToolbarCSS({
                       <span className={styles.markerNote}>
                         {annotation.comment}
                       </span>
+                      {apiMode && (
+                        <div className={styles.markerActions}>
+                          {(!annotation.status || annotation.status === 'draft' || annotation.status === 'failed') && (
+                            <>
+                              <button
+                                className={styles.markerAction}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditAnnotation(annotation);
+                                }}
+                                title="Edit"
+                              >
+                                <IconPencil size={12} />
+                              </button>
+                              <button
+                                className={styles.markerAction}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  sendAnnotation(annotation);
+                                }}
+                                title="Send"
+                              >
+                                <IconSend size={12} />
+                              </button>
+                              <button
+                                className={`${styles.markerAction} ${styles.danger}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteAnnotation(annotation.id);
+                                }}
+                                title="Delete"
+                              >
+                                <IconTrashAlt size={12} />
+                              </button>
+                            </>
+                          )}
+                          {annotation.status === 'pending' && (
+                            <span className={styles.markerStatus}><IconClock size={12} /> pending</span>
+                          )}
+                          {annotation.status === 'processing' && (
+                            <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
+                          )}
+                          {annotation.status === 'completed' && (
+                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

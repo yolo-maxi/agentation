@@ -43,4 +43,4 @@ export {
 } from "./utils/storage";
 
 // Types
-export type { Annotation } from "./types";
+export type { Annotation, AnnotationStatus, SendResult } from "./types";

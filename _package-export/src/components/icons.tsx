@@ -752,3 +752,68 @@ export const AnimatedBunny = ({
     </text>
   </svg>
 );
+
+// Send / paper plane icon
+export const IconSend = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+    <path
+      d="M14.5 1.5L7 9M14.5 1.5L10 14.5L7 9M14.5 1.5L1.5 6L7 9"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// Pencil / edit icon
+export const IconPencil = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+    <path
+      d="M11.5 2.5L13.5 4.5M10 4L3 11L2 14L5 13L12 6L10 4Z"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+// Spinner / loading icon
+export const IconSpinner = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+    <circle
+      cx="8"
+      cy="8"
+      r="6"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeDasharray="28"
+      strokeDashoffset="8"
+    >
+      <animateTransform
+        attributeName="transform"
+        type="rotate"
+        from="0 8 8"
+        to="360 8 8"
+        dur="0.8s"
+        repeatCount="indefinite"
+      />
+    </circle>
+  </svg>
+);
+
+// Clock / pending icon
+export const IconClock = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+    <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+    <path
+      d="M8 4.5V8L10.5 10.5"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
