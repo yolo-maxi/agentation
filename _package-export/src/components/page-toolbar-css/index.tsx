@@ -2129,6 +2129,8 @@ export function PageFeedbackToolbarCSS({
           const draftCount = allAnnotations.filter(a => !a.status || a.status === 'draft').length;
           const implementingCount = allAnnotations.filter(a => a.status === 'pending' || a.status === 'processing').length;
           const doneCount = allAnnotations.filter(a => a.status === 'completed').length;
+          const rejectedCount = allAnnotations.filter(a => a.status === 'rejected' || a.status === 'failed' || a.status === 'interrupted').length;
+          const totalVisible = visibleAnnotations.length;
           
           return (
             <div 
@@ -2138,9 +2140,11 @@ export function PageFeedbackToolbarCSS({
             >
               <div className={styles.batchPanelHeader}>
                 <span className={styles.batchPanelTitle}>
-                  {draftCount > 0 && <>{draftCount} draft</>}
-                  {implementingCount > 0 && <>{draftCount > 0 ? ', ' : ''}{implementingCount} implementing</>}
-                  {doneCount > 0 && <>{(draftCount > 0 || implementingCount > 0) ? ', ' : ''}{doneCount} done</>}
+                  {totalVisible} items
+                  {draftCount > 0 && <> · {draftCount} draft</>}
+                  {implementingCount > 0 && <> · {implementingCount} implementing</>}
+                  {doneCount > 0 && <> · {doneCount} done</>}
+                  {rejectedCount > 0 && <> · {rejectedCount} rejected</>}
                   {archivedCount > 0 && !showArchived && (
                     <button 
                       className={styles.archivedToggle}
