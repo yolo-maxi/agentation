@@ -258,7 +258,8 @@ $green: #34c759;
         border-radius: 1.5rem;
         padding: 0.375rem;
         @supports not (width: calc-size(auto, size)) {
-            width: 257px;
+            width: auto; // Let it size to content
+            min-width: 120px; // Minimum for 3 buttons
         }
     }
 }
