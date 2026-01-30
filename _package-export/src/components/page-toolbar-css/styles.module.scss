@@ -2360,3 +2360,152 @@ $green: #34c759;
         border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     }
 }
+
+// Remote Annotation Detail Modal
+// =============================================================================
+
+.remoteDetailOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    animation: fadeIn 0.15s ease;
+    
+    &.light {
+        background: rgba(0, 0, 0, 0.3);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.remoteDetailModal {
+    background: rgba(28, 28, 30, 0.98);
+    backdrop-filter: blur(20px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    animation: slideUp 0.2s ease;
+    
+    .light & {
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.remoteDetailHeader {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    
+    .light & {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+}
+
+.remoteDetailUser {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.remoteDetailStatus {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-left: auto;
+    
+    .light & {
+        color: rgba(0, 0, 0, 0.5);
+    }
+}
+
+.remoteDetailClose {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-left: 0.5rem;
+    
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .light & {
+        color: rgba(0, 0, 0, 0.4);
+        
+        &:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: rgba(0, 0, 0, 0.7);
+        }
+    }
+}
+
+.remoteDetailElement {
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    
+    strong {
+        color: rgba(255, 255, 255, 0.4);
+        font-weight: 500;
+        margin-right: 0.25rem;
+    }
+    
+    .light & {
+        color: rgba(0, 0, 0, 0.6);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        
+        strong {
+            color: rgba(0, 0, 0, 0.4);
+        }
+    }
+}
+
+.remoteDetailComment {
+    padding: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: pre-wrap;
+    
+    .light & {
+        color: rgba(0, 0, 0, 0.8);
+    }
+}

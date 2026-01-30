@@ -3072,6 +3072,55 @@ export function PageFeedbackToolbarCSS({
         </div>
       )}
 
+      {/* Remote annotation detail modal */}
+      {selectedRemoteId && (() => {
+        const selectedAnnotation = remoteAnnotations.find(a => 
+          (a.remoteId || a.id) === selectedRemoteId || a.id === `remote-${selectedRemoteId}`
+        );
+        if (!selectedAnnotation) return null;
+        
+        const userName = selectedAnnotation.tokenOwner || 'Unknown';
+        const userColor = getUserColor(userName);
+        
+        return (
+          <div 
+            className={`${styles.remoteDetailOverlay} ${!isDarkMode ? styles.light : ''}`}
+            onClick={() => setSelectedRemoteId(null)}
+            data-feedback-toolbar
+          >
+            <div 
+              className={styles.remoteDetailModal}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.remoteDetailHeader}>
+                <span className={styles.remoteDetailUser} style={{ color: userColor }}>
+                  {userName}
+                </span>
+                <span className={styles.remoteDetailStatus}>
+                  {selectedAnnotation.status === 'pending' && <><IconClock size={12} /> Pending</>}
+                  {selectedAnnotation.status === 'processing' && <><IconSpinner size={12} /> Processing</>}
+                  {selectedAnnotation.status === 'completed' && <><IconCheckSmall size={12} /> Done</>}
+                  {selectedAnnotation.status === 'rejected' && <>❌ Rejected</>}
+                  {selectedAnnotation.status === 'failed' && <>❌ Failed</>}
+                </span>
+                <button 
+                  className={styles.remoteDetailClose}
+                  onClick={() => setSelectedRemoteId(null)}
+                >
+                  <IconXmark size={16} />
+                </button>
+              </div>
+              <div className={styles.remoteDetailElement}>
+                <strong>Element:</strong> {selectedAnnotation.element}
+              </div>
+              <div className={styles.remoteDetailComment}>
+                {selectedAnnotation.comment}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Interactive overlay */}
       {isActive && (
         <div
