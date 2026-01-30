@@ -417,6 +417,7 @@ export function PageFeedbackToolbarCSS({
   const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
   const [listExpanded, setListExpanded] = useState(false);
+  const [panelCollapsed, setPanelCollapsed] = useState(true); // Start collapsed for cleaner UI
   const [selectedRemoteId, setSelectedRemoteId] = useState<string | null>(null);
   const VISIBLE_COUNT = 5; // Show last 5 by default
   
@@ -2134,18 +2135,19 @@ export function PageFeedbackToolbarCSS({
           
           return (
             <div 
-              className={`${styles.batchPanel} ${!isDarkMode ? styles.light : ""} ${listExpanded ? styles.expanded : ''}`}
+              className={`${styles.batchPanel} ${!isDarkMode ? styles.light : ""} ${listExpanded ? styles.expanded : ''} ${panelCollapsed ? styles.collapsed : ''}`}
               data-feedback-toolbar
               data-batch-panel
+              onClick={panelCollapsed ? () => setPanelCollapsed(false) : undefined}
             >
               <div className={styles.batchPanelHeader}>
                 <span className={styles.batchPanelTitle}>
                   {totalVisible} items
-                  {draftCount > 0 && <> · {draftCount} draft</>}
-                  {implementingCount > 0 && <> · {implementingCount} implementing</>}
-                  {doneCount > 0 && <> · {doneCount} done</>}
-                  {rejectedCount > 0 && <> · {rejectedCount} rejected</>}
-                  {archivedCount > 0 && !showArchived && (
+                  {!panelCollapsed && draftCount > 0 && <> · {draftCount} draft</>}
+                  {!panelCollapsed && implementingCount > 0 && <> · {implementingCount} implementing</>}
+                  {!panelCollapsed && doneCount > 0 && <> · {doneCount} done</>}
+                  {!panelCollapsed && rejectedCount > 0 && <> · {rejectedCount} rejected</>}
+                  {!panelCollapsed && archivedCount > 0 && !showArchived && (
                     <button 
                       className={styles.archivedToggle}
                       onClick={(e) => { e.stopPropagation(); setShowArchived(true); }}
@@ -2154,8 +2156,28 @@ export function PageFeedbackToolbarCSS({
                     </button>
                   )}
                 </span>
+                {/* Expand icon when collapsed */}
+                {panelCollapsed && (
+                  <span className={styles.expandIcon}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="18 15 12 9 6 15" />
+                    </svg>
+                  </span>
+                )}
+                {/* Collapse button when expanded */}
+                {!panelCollapsed && (
+                  <button
+                    className={styles.collapseBtn}
+                    onClick={(e) => { e.stopPropagation(); setPanelCollapsed(true); }}
+                    title="Collapse"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                )}
                 {/* Multiplayer toggle */}
-                {multiplayerMode && (
+                {!panelCollapsed && multiplayerMode && (
                   <button
                     className={`${styles.multiplayerToggle} ${isMultiplayer ? styles.active : ''}`}
                     onClick={(e) => {
