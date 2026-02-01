@@ -160,14 +160,32 @@ function RevisionModal({ annotation, onSubmit, onCancel, isLoading, isDark }: Re
 export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkProp, onToggleDark }: ReviewPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDarkInternal, setIsDarkInternal] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const saved = localStorage.getItem('review_panel_dark');
-    return saved ? JSON.parse(saved) : false;
+    if (typeof window === 'undefined') return true; // Default dark
+    // Read from toolbar's localStorage key for consistency
+    const saved = localStorage.getItem('feedback-toolbar-theme');
+    return saved === 'light' ? false : true; // Default to dark if not set
   });
   
-  // Use prop if provided, otherwise use internal state
+  // Listen for storage changes (when toolbar toggles dark mode)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleStorage = () => {
+      const saved = localStorage.getItem('feedback-toolbar-theme');
+      setIsDarkInternal(saved === 'light' ? false : true);
+    };
+    // Check on mount and listen for changes
+    handleStorage();
+    window.addEventListener('storage', handleStorage);
+    // Also poll since storage event doesn't fire in same tab
+    const interval = setInterval(handleStorage, 500);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+  
+  // Use prop if provided, otherwise use internal state (synced with toolbar)
   const isDark = isDarkProp !== undefined ? isDarkProp : isDarkInternal;
-  const toggleDark = onToggleDark || (() => setIsDarkInternal(!isDarkInternal));
   
   const [annotations, setAnnotations] = useState<AnnotationSummary[]>([]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => {
@@ -181,12 +199,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const [filter, setFilter] = useState<"active" | "review" | "mine" | "all">("active");
   const [showHidden, setShowHidden] = useState(false);
 
-  // Save theme preference (only if using internal state)
-  useEffect(() => {
-    if (isDarkProp === undefined && typeof window !== 'undefined') {
-      localStorage.setItem('review_panel_dark', JSON.stringify(isDarkInternal));
-    }
-  }, [isDarkInternal, isDarkProp]);
+  // Theme is synced from toolbar via localStorage, no need to save here
 
   // Save hidden IDs to localStorage
   useEffect(() => {
@@ -326,7 +339,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const buttonText = isDark ? "text-slate-300" : "text-gray-600";
 
   return (
-    <>
+    <div className="relative inline-flex">
       {/* Toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -342,10 +355,10 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
         )}
       </button>
 
-      {/* Panel */}
+      {/* Panel - positioned above the toolbar */}
       {isOpen && (
         <div 
-          className={`fixed bottom-16 right-5 z-[100003] w-96 max-h-[60vh] ${panelBg} border ${panelBorder} rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden flex flex-col`}
+          className={`absolute bottom-full right-0 mb-2 z-[100003] w-96 max-h-[60vh] ${panelBg} border ${panelBorder} rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden flex flex-col`}
           data-review-panel
         >
           {/* Header */}
@@ -353,14 +366,6 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
             <div className="flex items-center justify-between mb-3">
               <h2 className={`text-lg font-semibold ${textPrimary}`}>Annotations</h2>
               <div className="flex items-center gap-2">
-                {/* Theme toggle */}
-                <button
-                  onClick={toggleDark}
-                  className={`p-1.5 transition-colors rounded ${isDark ? "text-slate-400 hover:text-white hover:bg-slate-700" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
-                  title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-                >
-                  {isDark ? "☀️" : "🌙"}
-                </button>
                 <button
                   onClick={() => setShowHidden(!showHidden)}
                   className={`p-1.5 transition-colors ${showHidden ? 'text-purple-400' : isDark ? 'text-slate-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}
@@ -547,7 +552,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
           isDark={isDark}
         />
       )}
-    </>
+    </div>
   );
 }
 
