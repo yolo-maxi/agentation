@@ -339,7 +339,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const buttonText = isDark ? "text-slate-300" : "text-gray-600";
 
   return (
-    <div className="relative inline-flex">
+    <>
       {/* Toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -355,10 +355,10 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
         )}
       </button>
 
-      {/* Panel - positioned above the toolbar */}
+      {/* Panel - fixed position above toolbar */}
       {isOpen && (
         <div 
-          className={`absolute bottom-full right-0 mb-2 z-[100003] w-96 max-h-[60vh] ${panelBg} border ${panelBorder} rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden flex flex-col`}
+          className={`fixed bottom-16 right-4 z-[100003] w-96 max-h-[60vh] ${panelBg} border ${panelBorder} rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden flex flex-col`}
           data-review-panel
         >
           {/* Header */}
@@ -552,7 +552,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
           isDark={isDark}
         />
       )}
-    </div>
+    </>
   );
 }
 

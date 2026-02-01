@@ -1,6 +1,6 @@
 {
   "name": "agentation-flow",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "description": "Visual feedback for AI coding agents - with API mode and multiplayer support",
   "license": "PolyForm-Shield-1.0.0",
   "main": "./dist/index.js",
