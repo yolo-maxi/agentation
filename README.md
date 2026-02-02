@@ -1,55 +1,98 @@
-# agentation
+# VibeClaw
 
-Agentation is an agent-agnostic visual feedback tool. Click elements on your page, add notes, and copy structured output that helps AI coding agents find the exact code you're referring to.
+> **Annotate. Vibe. Claw.** Your new tool for Claw Driven Development.
+
+VibeClaw is a visual feedback tool that lets you click on anything in your web app and tell AI agents exactly what to fix. No more describing "that button somewhere in the sidebar" - just click it, drop your feedback, and let your AI do the heavy lifting.
 
 ## Install
 
 ```bash
-npm install agentation -D
+npm install vibeclaw -D
+# or
+pnpm add vibeclaw -D
 ```
 
 ## Usage
 
 ```tsx
-import { Agentation } from 'agentation';
+import { VibeClaw } from 'vibeclaw';
 
 function App() {
   return (
     <>
       <YourApp />
-      <Agentation />
+      <VibeClaw />
     </>
   );
 }
 ```
 
-The toolbar appears in the bottom-right corner. Click to activate, then click any element to annotate it.
+A floating toolbar appears in the corner. Click to activate, then click any element to sink your claws into it.
 
 ## Features
 
-- **Click to annotate** – Click any element with automatic selector identification
-- **Text selection** – Select text to annotate specific content
-- **Multi-select** – Drag to select multiple elements at once
-- **Area selection** – Drag to annotate any region, even empty space
-- **Animation pause** – Freeze CSS animations to capture specific states
-- **Structured output** – Copy markdown with selectors, positions, and context
-- **Dark/light mode** – Matches your preference or set manually
-- **Zero dependencies** – Pure CSS animations, no runtime libraries
+- **Point & Claw** - Click any element, get automatic selector identification
+- **Text Selection** - Highlight specific text to annotate
+- **Multi-Select** - Drag to grab multiple elements at once
+- **Area Selection** - Annotate any region, even empty space
+- **Animation Freeze** - Pause CSS animations to capture that perfect moment
+- **Structured Output** - Copy markdown with selectors, positions, and context
+- **Dark/Light Mode** - Matches your vibe automatically
+- **Zero Dependencies** - Pure CSS animations, no runtime bloat
 
-## How it works
+## How It Works
 
-Agentation captures class names, selectors, and element positions so AI agents can `grep` for the exact code you're referring to. Instead of describing "the blue button in the sidebar," you give the agent `.sidebar > button.primary` and your feedback.
+VibeClaw captures class names, selectors, and element positions so AI agents can `grep` straight to the code you're talking about. Instead of writing paragraphs about "the blue button that appears after you scroll down a bit", you give your agent `.sidebar > button.primary` and your feedback.
+
+It's like leaving a trail of breadcrumbs, except the breadcrumbs are CSS selectors and the birds are Claude.
+
+## Claw Driven Development
+
+The workflow is simple:
+
+1. See something wrong? **Claw it.**
+2. Add your feedback
+3. Let your AI agent handle the rest
+
+No more context-switching. No more "can you find the component where..." - just point, click, vibe.
+
+## API Mode
+
+Connect to [VibeClaw API](https://github.com/yolo-maxi/vibeClaw-api) for:
+
+- **Multiplayer** - See your team's annotations in real-time
+- **Auto-processing** - Integrate with Claude CLI for automatic fixes
+- **Persistent storage** - Annotations survive page refreshes
+
+```tsx
+<VibeClaw
+  apiMode
+  apiEndpoint="https://your-api.vibeclaw.dev"
+  editToken="your-token"
+  multiplayerMode
+/>
+```
 
 ## Requirements
 
 - React 18+
-- Desktop browser (mobile not supported)
+- Desktop browser (mobile support coming... eventually)
 
-## Docs
+## Legacy Imports
 
-Full documentation at [agentation.dev](https://agentation.dev)
+If you're migrating from older versions:
+
+```tsx
+// These all work
+import { VibeClaw } from 'vibeclaw';      // Recommended
+import { Clawvibes } from 'vibeclaw';     // Legacy
+import { Agentation } from 'vibeclaw';    // Legacy
+```
 
 ## License
 
-© 2026 Benji Taylor
-Licensed under PolyForm Shield 1.0.0
+MIT - Go forth and claw responsibly.
+
+---
+
+*Built with vibes by the Clawdbot team. Inspired by the original [Agentation](https://github.com/benjitaylor/agentation) concept.*

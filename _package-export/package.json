@@ -1,8 +1,8 @@
 {
-  "name": "agentation-flow",
-  "version": "1.4.0",
-  "description": "Visual feedback for AI coding agents - with API mode and multiplayer support",
-  "license": "PolyForm-Shield-1.0.0",
+  "name": "vibeclaw",
+  "version": "2.0.0",
+  "description": "VibeClaw - Annotate, Vibe, Claw. Visual feedback for AI coding agents with multiplayer support.",
+  "license": "MIT",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -30,22 +30,23 @@
     "test:watch": "vitest"
   },
   "keywords": [
-    "agentation",
+    "vibeclaw",
     "feedback",
     "annotations",
     "ai",
     "claude",
     "coding-agent",
     "visual-feedback",
-    "multiplayer"
+    "multiplayer",
+    "claw-driven-development"
   ],
-  "homepage": "https://github.com/yolo-maxi/agentation",
+  "homepage": "https://github.com/yolo-maxi/vibeClaw",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yolo-maxi/agentation.git"
+    "url": "https://github.com/yolo-maxi/vibeClaw.git"
   },
   "bugs": {
-    "url": "https://github.com/yolo-maxi/agentation/issues"
+    "url": "https://github.com/yolo-maxi/vibeClaw/issues"
   },
   "peerDependencies": {
     "react": ">=18.0.0",
