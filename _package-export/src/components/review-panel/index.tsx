@@ -7,10 +7,10 @@ import {
   rejectAnnotation,
   reviseAnnotation,
   cancelAnnotation,
+  AGENTATION_API,
   type AnnotationSummary,
   type TokenValidation,
 } from "../../api";
-import styles from "./styles.module.scss";
 
 // =============================================================================
 // Types
@@ -33,17 +33,17 @@ export interface ReviewPanelProps {
 // Status Configuration
 // =============================================================================
 
-const STATUS_CONFIG: Record<string, { label: string; styleClass: string; icon: string }> = {
-  pending: { label: "Pending", styleClass: "statusPending", icon: "\u23F3" },
-  processing: { label: "Processing", styleClass: "statusProcessing", icon: "\u2699\uFE0F" },
-  implemented: { label: "Review", styleClass: "statusImplemented", icon: "\uD83D\uDC40" },
-  approved: { label: "Approved", styleClass: "statusApproved", icon: "\u2705" },
-  completed: { label: "Done", styleClass: "statusCompleted", icon: "\u2705" },
-  rejected: { label: "Rejected", styleClass: "statusRejected", icon: "\u274C" },
-  revision_requested: { label: "Revising", styleClass: "statusRevision", icon: "\uD83D\uDD04" },
-  failed: { label: "Failed", styleClass: "statusFailed", icon: "\uD83D\uDCA5" },
-  interrupted: { label: "Interrupted", styleClass: "statusInterrupted", icon: "\u23F8\uFE0F" },
-  archived: { label: "Archived", styleClass: "statusArchived", icon: "\uD83D\uDCE6" },
+const STATUS_CONFIG: Record<string, { label: string; lightColor: string; darkColor: string; lightBg: string; darkBg: string; icon: string }> = {
+  pending: { label: "Pending", lightColor: "text-amber-600", darkColor: "text-yellow-400", lightBg: "bg-amber-100", darkBg: "bg-yellow-400/20", icon: "⏳" },
+  processing: { label: "Processing", lightColor: "text-blue-600", darkColor: "text-blue-400", lightBg: "bg-blue-100", darkBg: "bg-blue-400/20", icon: "⚙️" },
+  implemented: { label: "Review", lightColor: "text-purple-600", darkColor: "text-purple-400", lightBg: "bg-purple-100", darkBg: "bg-purple-400/20", icon: "👀" },
+  approved: { label: "Approved", lightColor: "text-green-600", darkColor: "text-green-400", lightBg: "bg-green-100", darkBg: "bg-green-400/20", icon: "✅" },
+  completed: { label: "Done", lightColor: "text-green-600", darkColor: "text-green-400", lightBg: "bg-green-100", darkBg: "bg-green-400/20", icon: "✅" },
+  rejected: { label: "Rejected", lightColor: "text-red-600", darkColor: "text-red-400", lightBg: "bg-red-100", darkBg: "bg-red-400/20", icon: "❌" },
+  revision_requested: { label: "Revising", lightColor: "text-orange-600", darkColor: "text-orange-400", lightBg: "bg-orange-100", darkBg: "bg-orange-400/20", icon: "🔄" },
+  failed: { label: "Failed", lightColor: "text-red-700", darkColor: "text-red-500", lightBg: "bg-red-100", darkBg: "bg-red-500/20", icon: "💥" },
+  interrupted: { label: "Interrupted", lightColor: "text-gray-600", darkColor: "text-gray-400", lightBg: "bg-gray-100", darkBg: "bg-gray-400/20", icon: "⏸️" },
+  archived: { label: "Archived", lightColor: "text-gray-500", darkColor: "text-gray-500", lightBg: "bg-gray-100", darkBg: "bg-gray-500/20", icon: "📦" },
 };
 
 // =============================================================================
@@ -52,9 +52,10 @@ const STATUS_CONFIG: Record<string, { label: string; styleClass: string; icon: s
 
 function StatusBadge({ status, isDark }: { status: string; isDark: boolean }) {
   const config = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
-  const styleClass = styles[config.styleClass as keyof typeof styles] || "";
+  const color = isDark ? config.darkColor : config.lightColor;
+  const bg = isDark ? config.darkBg : config.lightBg;
   return (
-    <span className={`${styles.statusBadge} ${styleClass}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full ${bg} ${color}`}>
       <span>{config.icon}</span>
       {config.label}
     </span>
@@ -84,52 +85,62 @@ function RevisionModal({ annotation, onSubmit, onCancel, isLoading, isDark }: Re
   const [prompt, setPrompt] = useState("");
 
   return (
-    <div className={styles.modalBackdrop}>
-      <div className={`${styles.modal} ${!isDark ? styles.light : ""}`}>
-        <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>Request Revision</h3>
-          <p className={styles.modalSubtitle}>
+    <div className="fixed inset-0 z-[100010] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className={`w-full max-w-lg mx-4 rounded-xl border shadow-2xl ${
+        isDark 
+          ? "bg-slate-900 border-slate-700" 
+          : "bg-white border-gray-200"
+      }`}>
+        <div className={`p-4 border-b ${isDark ? "border-slate-700" : "border-gray-200"}`}>
+          <h3 className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>Request Revision</h3>
+          <p className={`text-sm mt-1 ${isDark ? "text-slate-400" : "text-gray-500"}`}>
             Describe what changes you want to the current implementation
           </p>
         </div>
-
-        <div className={styles.modalBody}>
-          <div className={styles.originalRequest}>
-            <p className={styles.originalLabel}>Original request:</p>
-            <p className={styles.originalText}>{annotation.comment}</p>
+        
+        <div className="p-4">
+          <div className={`mb-4 p-3 rounded-lg ${isDark ? "bg-slate-800/50" : "bg-gray-50"}`}>
+            <p className={`text-xs mb-1 ${isDark ? "text-slate-500" : "text-gray-400"}`}>Original request:</p>
+            <p className={`text-sm ${isDark ? "text-slate-300" : "text-gray-700"}`}>{annotation.comment}</p>
           </div>
-
+          
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g., Make the color darker, move it to the left, add more padding..."
-            className={styles.textarea}
+            className={`w-full h-32 px-3 py-2 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+              isDark 
+                ? "bg-slate-800 border-slate-600 text-white placeholder-slate-500" 
+                : "bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+            }`}
             autoFocus
           />
-
+          
           {annotation.revisionCount > 0 && (
-            <p className={styles.revisionCount}>
+            <p className={`text-xs mt-2 ${isDark ? "text-slate-500" : "text-gray-400"}`}>
               This annotation has been revised {annotation.revisionCount} time(s)
             </p>
           )}
         </div>
-
-        <div className={styles.modalFooter}>
+        
+        <div className={`p-4 border-t flex justify-end gap-3 ${isDark ? "border-slate-700" : "border-gray-200"}`}>
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className={styles.modalCancelButton}
+            className={`px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+              isDark ? "text-slate-300 hover:text-white" : "text-gray-600 hover:text-gray-900"
+            }`}
           >
             Cancel
           </button>
           <button
             onClick={() => onSubmit(prompt)}
             disabled={isLoading || !prompt.trim()}
-            className={styles.modalSubmitButton}
+            className="px-4 py-2 text-sm font-medium bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isLoading ? (
               <>
-                <span className={styles.buttonSpinner} />
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Submitting...
               </>
             ) : (
@@ -154,7 +165,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
     const saved = localStorage.getItem('feedback-toolbar-theme');
     return saved === 'light' ? false : true; // Default to dark if not set
   });
-
+  
   // Listen for storage changes (when toolbar toggles dark mode)
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -172,10 +183,10 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
       clearInterval(interval);
     };
   }, []);
-
+  
   // Use prop if provided, otherwise use internal state (synced with toolbar)
   const isDark = isDarkProp !== undefined ? isDarkProp : isDarkInternal;
-
+  
   const [annotations, setAnnotations] = useState<AnnotationSummary[]>([]);
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set();
@@ -187,6 +198,8 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const [revisionTarget, setRevisionTarget] = useState<AnnotationSummary | null>(null);
   const [filter, setFilter] = useState<"active" | "review" | "mine" | "all">("active");
   const [showHidden, setShowHidden] = useState(false);
+
+  // Theme is synced from toolbar via localStorage, no need to save here
 
   // Save hidden IDs to localStorage
   useEffect(() => {
@@ -289,7 +302,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   });
 
   const reviewCount = annotations.filter((a) => a.status === "implemented" && !hiddenIds.has(a.id)).length;
-  const activeCount = annotations.filter((a) =>
+  const activeCount = annotations.filter((a) => 
     ["pending", "processing", "implemented", "revision_requested"].includes(a.status) && !hiddenIds.has(a.id)
   ).length;
 
@@ -312,18 +325,31 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
     }
   };
 
+  // Theme-aware styles
+  const panelBg = isDark ? "bg-slate-900/95" : "bg-white/95";
+  const panelBorder = isDark ? "border-slate-700" : "border-gray-200";
+  const headerBorder = isDark ? "border-slate-700" : "border-gray-200";
+  const textPrimary = isDark ? "text-white" : "text-gray-900";
+  const textSecondary = isDark ? "text-slate-400" : "text-gray-500";
+  const textMuted = isDark ? "text-slate-500" : "text-gray-400";
+  const hoverBg = isDark ? "hover:bg-slate-800/50" : "hover:bg-gray-50";
+  const dividerBg = isDark ? "divide-slate-800" : "divide-gray-100";
+  const footerBg = isDark ? "bg-slate-800/50" : "bg-gray-50";
+  const buttonBg = isDark ? "bg-slate-700/50 hover:bg-slate-700" : "bg-gray-100 hover:bg-gray-200";
+  const buttonText = isDark ? "text-slate-300" : "text-gray-600";
+
   return (
     <>
       {/* Toggle button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`${styles.toggleButton} ${isOpen ? styles.active : ""}`}
+        className={`relative flex items-center justify-center w-[34px] h-[34px] rounded-full transition-all duration-150 hover:bg-black/5 text-black/60 hover:text-black/90 ${isOpen ? "text-purple-500 bg-purple-500/20" : ""}`}
         title={isOpen ? "Close review panel" : "Open review panel"}
         data-review-panel-trigger
       >
-        <span>{isOpen ? "\u2715" : (reviewCount > 0 ? "\uD83D\uDC40" : "\uD83D\uDCCB")}</span>
+        <span className="text-sm">{isOpen ? "✕" : (reviewCount > 0 ? "👀" : "📋")}</span>
         {activeCount > 0 && !isOpen && (
-          <span className={styles.badge}>
+          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-4 h-4 px-1 text-[10px] font-bold text-white rounded-full bg-purple-500">
             {activeCount}
           </span>
         )}
@@ -331,21 +357,21 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
 
       {/* Panel - fixed position above toolbar */}
       {isOpen && (
-        <div
-          className={`${styles.panel} ${!isDark ? styles.light : ""}`}
+        <div 
+          className={`fixed bottom-16 right-4 z-[100003] w-96 max-h-[60vh] ${panelBg} border ${panelBorder} rounded-xl shadow-2xl backdrop-blur-sm overflow-hidden flex flex-col`}
           data-review-panel
         >
           {/* Header */}
-          <div className={styles.header}>
-            <div className={styles.headerTop}>
-              <h2 className={styles.title}>Annotations</h2>
-              <div className={styles.headerActions}>
+          <div className={`p-4 border-b ${headerBorder}`}>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className={`text-lg font-semibold ${textPrimary}`}>Annotations</h2>
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowHidden(!showHidden)}
-                  className={`${styles.iconButton} ${showHidden ? styles.active : ""}`}
+                  className={`p-1.5 transition-colors ${showHidden ? 'text-purple-400' : isDark ? 'text-slate-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}
                   title={showHidden ? "Show active" : "Show hidden"}
                 >
-                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     {showHidden ? (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     ) : (
@@ -356,18 +382,18 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
                 <button
                   onClick={loadAnnotations}
                   disabled={isLoading}
-                  className={styles.iconButton}
+                  className={`p-1.5 transition-colors ${isDark ? 'text-slate-400 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}
                 >
-                  <svg className={isLoading ? styles.spinner : ""} width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </button>
               </div>
             </div>
-
+            
             {/* Filters */}
             {!showHidden && (
-              <div className={styles.filters}>
+              <div className="flex gap-2 flex-wrap">
                 {[
                   { key: "active", label: `Active (${activeCount})` },
                   { key: "review", label: `Review (${reviewCount})`, highlight: reviewCount > 0 },
@@ -377,7 +403,15 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
                   <button
                     key={key}
                     onClick={() => setFilter(key as typeof filter)}
-                    className={`${styles.filterButton} ${filter === key ? styles.active : ""} ${highlight ? styles.highlight : ""}`}
+                    className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                      filter === key
+                        ? highlight ? "bg-purple-500 text-white" : isDark ? "bg-slate-600 text-white" : "bg-gray-200 text-gray-900"
+                        : highlight 
+                          ? "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30" 
+                          : isDark 
+                            ? "bg-slate-800 text-slate-400 hover:text-white" 
+                            : "bg-gray-100 text-gray-500 hover:text-gray-700"
+                    }`}
                   >
                     {label}
                   </button>
@@ -385,53 +419,53 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
               </div>
             )}
             {showHidden && (
-              <p className={styles.hiddenInfo}>Showing {hiddenIds.size} hidden annotation(s)</p>
+              <p className={`text-xs ${textMuted}`}>Showing {hiddenIds.size} hidden annotation(s)</p>
             )}
           </div>
 
           {/* Annotation list */}
-          <div className={styles.listContainer}>
+          <div className="flex-1 overflow-y-auto">
             {filteredAnnotations.length === 0 ? (
-              <div className={styles.emptyState}>
+              <div className={`p-8 text-center ${textSecondary}`}>
                 {isLoading ? "Loading..." : showHidden ? "No hidden annotations" : "No annotations"}
               </div>
             ) : (
-              <div className={styles.list}>
+              <div className={`divide-y ${dividerBg}`}>
                 {filteredAnnotations.map((a) => {
                   const actions = getActions(a);
                   const isHidden = hiddenIds.has(a.id);
-
+                  
                   return (
-                    <div key={a.id} className={styles.item}>
+                    <div key={a.id} className={`p-4 transition-colors ${hoverBg}`}>
                       {/* Header row */}
-                      <div className={styles.itemHeader}>
-                        <div className={styles.itemHeaderLeft}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
                           <StatusBadge status={a.status} isDark={isDark} />
-                          <span className={styles.timeAgo}>
+                          <span className={`text-xs ${textMuted}`}>
                             <TimeAgo timestamp={a.timestamp} />
                           </span>
                         </div>
-                        <span className={`${styles.owner} ${a.isOwn ? styles.isOwn : ""}`}>
+                        <span className={`text-xs ${a.isOwn ? "text-cyan-500" : textMuted}`}>
                           {a.tokenOwner}
                         </span>
                       </div>
 
                       {/* Comment */}
-                      <p className={styles.comment}>
+                      <p className={`text-sm mb-2 line-clamp-2 ${isDark ? "text-slate-300" : "text-gray-700"}`}>
                         {a.comment}
                       </p>
 
                       {/* Element target */}
-                      <p className={styles.element}>
+                      <p className={`text-xs mb-3 font-mono truncate ${textMuted}`}>
                         {a.element}
                       </p>
 
                       {/* Actions */}
-                      <div className={styles.actions}>
+                      <div className="flex gap-2 flex-wrap">
                         {isHidden ? (
                           <button
                             onClick={() => handleUnhide(a.id)}
-                            className={`${styles.actionButton} ${styles.unhideButton}`}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${buttonBg} ${buttonText}`}
                           >
                             Unhide
                           </button>
@@ -441,34 +475,34 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
                               <button
                                 onClick={() => handleApprove(a.id)}
                                 disabled={actionLoading === a.id}
-                                className={`${styles.actionButton} ${styles.approveButton}`}
+                                className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-600/20 hover:bg-green-600/30 text-green-500 rounded-lg transition-colors disabled:opacity-50"
                               >
-                                {actionLoading === a.id ? "..." : "\u2713 Approve"}
+                                {actionLoading === a.id ? "..." : "✓ Approve"}
                               </button>
                             )}
                             {actions.includes("edit") && (
                               <button
                                 onClick={() => setRevisionTarget(a)}
                                 disabled={actionLoading === a.id}
-                                className={`${styles.actionButton} ${styles.editButton}`}
+                                className="flex-1 px-3 py-1.5 text-xs font-medium bg-purple-600/20 hover:bg-purple-600/30 text-purple-500 rounded-lg transition-colors disabled:opacity-50"
                               >
-                                \u270E Edit
+                                ✎ Edit
                               </button>
                             )}
                             {actions.includes("reject") && (
                               <button
                                 onClick={() => handleReject(a.id)}
                                 disabled={actionLoading === a.id}
-                                className={`${styles.actionButton} ${styles.rejectButton}`}
+                                className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-600/20 hover:bg-red-600/30 text-red-500 rounded-lg transition-colors disabled:opacity-50"
                               >
-                                \u2715 Reject
+                                ✕ Reject
                               </button>
                             )}
                             {actions.includes("cancel") && (
                               <button
                                 onClick={() => handleCancel(a.id)}
                                 disabled={actionLoading === a.id}
-                                className={`${styles.actionButton} ${styles.cancelButton}`}
+                                className="px-3 py-1.5 text-xs font-medium bg-red-600/20 hover:bg-red-600/30 text-red-500 rounded-lg transition-colors disabled:opacity-50"
                               >
                                 Cancel
                               </button>
@@ -476,7 +510,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
                             {actions.includes("hide") && (
                               <button
                                 onClick={() => handleHide(a.id)}
-                                className={`${styles.actionButton} ${styles.hideButton}`}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${buttonBg} ${buttonText}`}
                               >
                                 Hide
                               </button>
@@ -487,7 +521,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
 
                       {/* Commit info */}
                       {a.commitSha && (
-                        <p className={styles.commitInfo}>
+                        <p className={`text-xs mt-2 font-mono ${isDark ? "text-slate-600" : "text-gray-400"}`}>
                           commit: {a.commitSha.slice(0, 7)}
                         </p>
                       )}
@@ -499,10 +533,10 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
           </div>
 
           {/* Footer */}
-          <div className={styles.footer}>
-            <p className={styles.footerText}>
-              Logged in as <span className={styles.userName}>{tokenInfo.name}</span>
-              {tokenInfo.isAdmin && <span className={styles.adminBadge}>(admin)</span>}
+          <div className={`p-3 border-t ${headerBorder} ${footerBg}`}>
+            <p className={`text-xs text-center ${textMuted}`}>
+              Logged in as <span className="text-cyan-500">{tokenInfo.name}</span>
+              {tokenInfo.isAdmin && <span className="text-yellow-500 ml-1">(admin)</span>}
             </p>
           </div>
         </div>
