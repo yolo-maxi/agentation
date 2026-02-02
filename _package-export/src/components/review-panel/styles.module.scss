@@ -132,6 +132,15 @@ $light-button-hover: #e5e7eb;
   }
 }
 
+.panelEmbedded {
+  position: static;
+  bottom: auto;
+  right: auto;
+  width: 384px;
+  max-height: 50vh;
+  margin-bottom: 10px;
+}
+
 // =============================================================================
 // Header
 // =============================================================================

@@ -128,9 +128,7 @@ export type PageFeedbackToolbarCSSProps = {
   /** Callback fired when an annotation comment is edited. */
   onAnnotationUpdate?: (annotation: Annotation) => void;
   
-  // === API Mode Props ===
-  /** Enable API mode - auto-sends annotations and shows review panel */
-  apiMode?: boolean;
+  // === API Props ===
   /** API endpoint for submitting annotations */
   apiEndpoint?: string;
   /** Edit token for API authentication */
@@ -158,8 +156,7 @@ export function PageFeedbackToolbarCSS({
   onAnnotationAdd,
   onAnnotationDelete,
   onAnnotationUpdate,
-  // API mode props
-  apiMode = false,
+  // API props
   apiEndpoint,
   editToken,
   onSend,
@@ -220,8 +217,9 @@ export function PageFeedbackToolbarCSS({
   const annotationColor = DEFAULT_ANNOTATION_COLOR;
   const blockInteractions = DEFAULT_BLOCK_INTERACTIONS;
 
-  // API mode state
+  // API state
   const [tokenInfo, setTokenInfo] = useState<TokenValidation | null>(null);
+  const [isReviewOpen, setIsReviewOpen] = useState(false);
   
   // Click mode - when true, user can interact with UI normally (no annotation creation)
   const [clickMode, setClickMode] = useState(false);
@@ -342,7 +340,7 @@ export function PageFeedbackToolbarCSS({
   }, [isDarkMode, mounted]);
 
   useEffect(() => {
-    if (!apiMode || !editToken) {
+    if (!editToken) {
       setTokenInfo(null);
       return;
     }
@@ -353,7 +351,7 @@ export function PageFeedbackToolbarCSS({
     return () => {
       cancelled = true;
     };
-  }, [apiMode, editToken, apiEndpoint]);
+  }, [editToken, apiEndpoint]);
 
 
   // Track scroll
@@ -447,6 +445,7 @@ export function PageFeedbackToolbarCSS({
       setEditingAnnotation(null);
       setHoverInfo(null);
       setShowSettings(false); // Close settings when toolbar closes
+      setIsReviewOpen(false);
       if (isFrozen) {
         unfreezeAnimations();
       }
@@ -1058,9 +1057,9 @@ export function PageFeedbackToolbarCSS({
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, [isActive, isDragging]);
 
-  // Schedule auto-send (API mode)
+  // Schedule auto-send
   const startAutoSend = useCallback((annotationId: string) => {
-    if (!apiMode || !onSend) return;
+    if (!onSend) return;
     if (autoSendTimersRef.current[annotationId]) return;
 
     const timer = setTimeout(() => {
@@ -1096,7 +1095,7 @@ export function PageFeedbackToolbarCSS({
     }, 10000);
 
     autoSendTimersRef.current[annotationId] = timer;
-  }, [apiMode, onSend]);
+  }, [onSend]);
 
   // Add annotation
   const addAnnotation = useCallback(
@@ -1121,7 +1120,7 @@ export function PageFeedbackToolbarCSS({
         accessibility: pendingAnnotation.accessibility,
         computedStyles: pendingAnnotation.computedStyles,
         nearbyElements: pendingAnnotation.nearbyElements,
-        status: apiMode ? 'draft' as const : undefined,
+        status: "draft" as const,
         imageData,
       };
 
@@ -1139,10 +1138,8 @@ export function PageFeedbackToolbarCSS({
       // Fire callback
       onAnnotationAdd?.(newAnnotation);
       
-      // In API mode, schedule auto-send
-      if (apiMode) {
-        startAutoSend(newAnnotation.id);
-      }
+      // Schedule auto-send
+      startAutoSend(newAnnotation.id);
 
       // Animate out the pending annotation UI
       setPendingExiting(true);
@@ -1153,7 +1150,7 @@ export function PageFeedbackToolbarCSS({
 
       window.getSelection()?.removeAllRanges();
     },
-    [pendingAnnotation, onAnnotationAdd, apiMode, startAutoSend],
+    [pendingAnnotation, onAnnotationAdd, startAutoSend],
   );
 
   // Cancel annotation with exit animation
@@ -1264,7 +1261,7 @@ export function PageFeedbackToolbarCSS({
 
   // Presence heartbeat - send cursor position every 10 seconds when toolbar is active
   useEffect(() => {
-    if (!apiMode || !apiEndpoint || !editToken || !isActive) {
+    if (!apiEndpoint || !editToken || !isActive) {
       // Clear interval when conditions not met
       if (presenceIntervalRef.current) {
         clearInterval(presenceIntervalRef.current);
@@ -1324,11 +1321,11 @@ export function PageFeedbackToolbarCSS({
         presenceIntervalRef.current = null;
       }
     };
-  }, [apiMode, apiEndpoint, editToken, isActive]);
+  }, [apiEndpoint, editToken, isActive]);
 
   // Track cursor position for presence heartbeat
   useEffect(() => {
-    if (!apiMode || !isActive) return;
+    if (!isActive) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       lastCursorPosRef.current = { x: e.clientX, y: e.clientY };
@@ -1336,7 +1333,7 @@ export function PageFeedbackToolbarCSS({
 
     document.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => document.removeEventListener('mousemove', handleMouseMove);
-  }, [apiMode, isActive]);
+  }, [isActive]);
 
   // Toolbar dragging - mousemove and mouseup
   useEffect(() => {
@@ -1629,7 +1626,7 @@ export function PageFeedbackToolbarCSS({
           </div>
           
           {/* Viewers indicator - shows when others are viewing */}
-          {apiMode && viewers.length > 0 && (
+          {viewers.length > 0 && (
             <div 
               className={`${styles.viewersIndicator} ${!isDarkMode ? styles.light : ''}`}
               title={viewers.map(v => v.userName || 'Anonymous').join(', ')}
@@ -1649,7 +1646,7 @@ export function PageFeedbackToolbarCSS({
             } ${tooltipsHidden ? styles.tooltipsHidden : ""}`}
             onMouseLeave={showTooltipsAgain}
           >
-            {apiMode && editToken && tokenInfo?.valid && (
+            {editToken && tokenInfo?.valid && (
               <ReviewPanel
                 editToken={editToken}
                 tokenInfo={tokenInfo}
@@ -1659,81 +1656,116 @@ export function PageFeedbackToolbarCSS({
                 pollInterval={pollInterval}
                 onAnnotationsLoaded={syncLocalAnnotations}
                 isDark={isDarkMode}
+                isOpen={isReviewOpen}
+                onOpenChange={setIsReviewOpen}
+                showToggle={false}
+                showFooter={false}
+                embedded
               />
             )}
-            <div className={`${styles.buttonWrapper} ${
-              toolbarPosition && toolbarPosition.x < 120 ? styles.buttonWrapperAlignLeft : ""
-            }`}>
-              <button
-                className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  hideTooltipsUntilMouseLeave();
-                  toggleFreeze();
-                }}
-                data-active={isFrozen}
+            <div className={styles.controlsRow}>
+              {editToken && tokenInfo?.valid && tokenInfo?.name && (
+                <span className={styles.userHandle}>@{tokenInfo.name}</span>
+              )}
+              <div
+                className={`${styles.buttonWrapper} ${
+                  toolbarPosition && toolbarPosition.x < 120 ? styles.buttonWrapperAlignLeft : ""
+                }`}
               >
-                <IconPausePlayAnimated size={24} isPaused={isFrozen} />
-              </button>
-              <span className={styles.buttonTooltip}>
-                {isFrozen ? "Resume animations" : "Pause animations"}
-                <span className={styles.shortcut}>P</span>
-              </span>
-            </div>
+                <button
+                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideTooltipsUntilMouseLeave();
+                    toggleFreeze();
+                  }}
+                  data-active={isFrozen}
+                >
+                  <IconPausePlayAnimated size={24} isPaused={isFrozen} />
+                </button>
+                <span className={styles.buttonTooltip}>
+                  {isFrozen ? "Resume animations" : "Pause animations"}
+                  <span className={styles.shortcut}>P</span>
+                </span>
+              </div>
 
-            <div className={styles.buttonWrapper}>
-              <button
-                className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  hideTooltipsUntilMouseLeave();
-                  setShowMarkers(!showMarkers);
-                }}
-                disabled={!hasAnnotations}
+              {editToken && tokenInfo?.valid && (
+                <div className={styles.buttonWrapper}>
+                  <button
+                    className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      hideTooltipsUntilMouseLeave();
+                      setIsReviewOpen(!isReviewOpen);
+                    }}
+                    data-active={isReviewOpen}
+                  >
+                    <span className={styles.reviewToggleIcon}>
+                      {isReviewOpen ? "✕" : "👀"}
+                    </span>
+                  </button>
+                  <span className={styles.buttonTooltip}>
+                    {isReviewOpen ? "Close panel" : "Open panel"}
+                  </span>
+                </div>
+              )}
+
+              <div className={styles.buttonWrapper}>
+                <button
+                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideTooltipsUntilMouseLeave();
+                    setShowMarkers(!showMarkers);
+                  }}
+                  disabled={!hasAnnotations}
+                >
+                  <IconEyeAnimated size={24} isOpen={showMarkers} />
+                </button>
+                <span className={styles.buttonTooltip}>
+                  {showMarkers ? "Hide markers" : "Show markers"}
+                  <span className={styles.shortcut}>H</span>
+                </span>
+              </div>
+
+
+              {/* Dark mode toggle - always visible in toolbar */}
+              <div className={styles.buttonWrapper}>
+                <button
+                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideTooltipsUntilMouseLeave();
+                    setIsDarkMode(!isDarkMode);
+                  }}
+                >
+                  {isDarkMode ? <IconSun size={20} /> : <IconMoon size={20} />}
+                </button>
+                <span className={styles.buttonTooltip}>
+                  {isDarkMode ? "Light mode" : "Dark mode"}
+                </span>
+              </div>
+
+              <div
+                className={`${styles.buttonWrapper} ${
+                  toolbarPosition && typeof window !== "undefined" && toolbarPosition.x > window.innerWidth - 120 ? styles.buttonWrapperAlignRight : ""
+                }`}
               >
-                <IconEyeAnimated size={24} isOpen={showMarkers} />
-              </button>
-              <span className={styles.buttonTooltip}>
-                {showMarkers ? "Hide markers" : "Show markers"}
-                <span className={styles.shortcut}>H</span>
-              </span>
-            </div>
-
-
-            {/* Dark mode toggle - always visible in toolbar */}
-            <div className={styles.buttonWrapper}>
-              <button
-                className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  hideTooltipsUntilMouseLeave();
-                  setIsDarkMode(!isDarkMode);
-                }}
-              >
-                {isDarkMode ? <IconSun size={20} /> : <IconMoon size={20} />}
-              </button>
-              <span className={styles.buttonTooltip}>
-                {isDarkMode ? "Light mode" : "Dark mode"}
-              </span>
-            </div>
-
-            <div className={`${styles.buttonWrapper} ${
-              toolbarPosition && typeof window !== "undefined" && toolbarPosition.x > window.innerWidth - 120 ? styles.buttonWrapperAlignRight : ""
-            }`}>
-              <button
-                className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  hideTooltipsUntilMouseLeave();
-                  setIsActive(false);
-                }}
-              >
-                <IconXmarkLarge size={24} />
-              </button>
-              <span className={styles.buttonTooltip}>
-                Exit
-                <span className={styles.shortcut}>Esc</span>
-              </span>
+                <button
+                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    hideTooltipsUntilMouseLeave();
+                    setIsActive(false);
+                  }}
+                >
+                  <IconXmarkLarge size={24} />
+                </button>
+                <span className={styles.buttonTooltip}>
+                  Exit
+                  <span className={styles.shortcut}>Esc</span>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1814,61 +1846,59 @@ export function PageFeedbackToolbarCSS({
                       <span className={styles.markerNote}>
                         {annotation.comment}
                       </span>
-                      {apiMode && (
-                        <div className={styles.markerActions}>
-                          {(!annotation.status || annotation.status === 'draft') && (
-                            <>
-                              <button
-                                className={styles.markerAction}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startEditAnnotation(annotation);
-                                }}
-                                title="Edit"
-                              >
-                                <IconPencil size={12} />
-                              </button>
-                              <button
-                                className={`${styles.markerAction} ${styles.danger}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteAnnotation(annotation.id);
-                                }}
-                                title="Delete"
-                              >
-                                <IconTrashAlt size={12} />
-                              </button>
-                            </>
-                          )}
-                          {annotation.status === 'pending' && (
-                            <span className={styles.markerStatus}><IconClock size={12} /> implementing</span>
-                          )}
-                          {annotation.status === 'processing' && (
-                            <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
-                          )}
-                          {annotation.status === 'implemented' && (
-                            <span className={styles.markerStatus}><IconCheckSmall size={12} /> review</span>
-                          )}
-                          {annotation.status === 'revision_requested' && (
-                            <span className={styles.markerStatus}><IconSpinner size={12} /> revising</span>
-                          )}
-                          {annotation.status === 'completed' && (
-                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
-                          )}
-                          {annotation.status === 'approved' && (
-                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> approved</span>
-                          )}
-                          {annotation.status === 'rejected' && (
-                            <span className={styles.markerStatus}><IconXmark size={10} /> rejected</span>
-                          )}
-                          {annotation.status === 'failed' && (
-                            <span className={styles.markerStatus}><IconXmark size={10} /> failed</span>
-                          )}
-                          {annotation.status === 'interrupted' && (
-                            <span className={styles.markerStatus}><IconPause size={10} /> interrupted</span>
-                          )}
-                        </div>
-                      )}
+                      <div className={styles.markerActions}>
+                        {(!annotation.status || annotation.status === 'draft') && (
+                          <>
+                            <button
+                              className={styles.markerAction}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditAnnotation(annotation);
+                              }}
+                              title="Edit"
+                            >
+                              <IconPencil size={12} />
+                            </button>
+                            <button
+                              className={`${styles.markerAction} ${styles.danger}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteAnnotation(annotation.id);
+                              }}
+                              title="Delete"
+                            >
+                              <IconTrashAlt size={12} />
+                            </button>
+                          </>
+                        )}
+                        {annotation.status === 'pending' && (
+                          <span className={styles.markerStatus}><IconClock size={12} /> implementing</span>
+                        )}
+                        {annotation.status === 'processing' && (
+                          <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
+                        )}
+                        {annotation.status === 'implemented' && (
+                          <span className={styles.markerStatus}><IconCheckSmall size={12} /> review</span>
+                        )}
+                        {annotation.status === 'revision_requested' && (
+                          <span className={styles.markerStatus}><IconSpinner size={12} /> revising</span>
+                        )}
+                        {annotation.status === 'completed' && (
+                          <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
+                        )}
+                        {annotation.status === 'approved' && (
+                          <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> approved</span>
+                        )}
+                        {annotation.status === 'rejected' && (
+                          <span className={styles.markerStatus}><IconXmark size={10} /> rejected</span>
+                        )}
+                        {annotation.status === 'failed' && (
+                          <span className={styles.markerStatus}><IconXmark size={10} /> failed</span>
+                        )}
+                        {annotation.status === 'interrupted' && (
+                          <span className={styles.markerStatus}><IconPause size={10} /> interrupted</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1975,61 +2005,59 @@ export function PageFeedbackToolbarCSS({
                       <span className={styles.markerNote}>
                         {annotation.comment}
                       </span>
-                      {apiMode && (
-                        <div className={styles.markerActions}>
-                          {(!annotation.status || annotation.status === 'draft') && (
-                            <>
-                              <button
-                                className={styles.markerAction}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  startEditAnnotation(annotation);
-                                }}
-                                title="Edit"
-                              >
-                                <IconPencil size={12} />
-                              </button>
-                              <button
-                                className={`${styles.markerAction} ${styles.danger}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteAnnotation(annotation.id);
-                                }}
-                                title="Delete"
-                              >
-                                <IconTrashAlt size={12} />
-                              </button>
-                            </>
-                          )}
-                          {annotation.status === 'pending' && (
-                            <span className={styles.markerStatus}><IconClock size={12} /> implementing</span>
-                          )}
-                          {annotation.status === 'processing' && (
-                            <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
-                          )}
-                          {annotation.status === 'implemented' && (
-                            <span className={styles.markerStatus}><IconCheckSmall size={12} /> review</span>
-                          )}
-                          {annotation.status === 'revision_requested' && (
-                            <span className={styles.markerStatus}><IconSpinner size={12} /> revising</span>
-                          )}
-                          {annotation.status === 'completed' && (
-                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
-                          )}
-                          {annotation.status === 'approved' && (
-                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> approved</span>
-                          )}
-                          {annotation.status === 'rejected' && (
-                            <span className={styles.markerStatus}><IconXmark size={10} /> rejected</span>
-                          )}
-                          {annotation.status === 'failed' && (
-                            <span className={styles.markerStatus}><IconXmark size={10} /> failed</span>
-                          )}
-                          {annotation.status === 'interrupted' && (
-                            <span className={styles.markerStatus}><IconPause size={10} /> interrupted</span>
-                          )}
-                        </div>
-                      )}
+                      <div className={styles.markerActions}>
+                        {(!annotation.status || annotation.status === 'draft') && (
+                          <>
+                            <button
+                              className={styles.markerAction}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditAnnotation(annotation);
+                              }}
+                              title="Edit"
+                            >
+                              <IconPencil size={12} />
+                            </button>
+                            <button
+                              className={`${styles.markerAction} ${styles.danger}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteAnnotation(annotation.id);
+                              }}
+                              title="Delete"
+                            >
+                              <IconTrashAlt size={12} />
+                            </button>
+                          </>
+                        )}
+                        {annotation.status === 'pending' && (
+                          <span className={styles.markerStatus}><IconClock size={12} /> implementing</span>
+                        )}
+                        {annotation.status === 'processing' && (
+                          <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
+                        )}
+                        {annotation.status === 'implemented' && (
+                          <span className={styles.markerStatus}><IconCheckSmall size={12} /> review</span>
+                        )}
+                        {annotation.status === 'revision_requested' && (
+                          <span className={styles.markerStatus}><IconSpinner size={12} /> revising</span>
+                        )}
+                        {annotation.status === 'completed' && (
+                          <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
+                        )}
+                        {annotation.status === 'approved' && (
+                          <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> approved</span>
+                        )}
+                        {annotation.status === 'rejected' && (
+                          <span className={styles.markerStatus}><IconXmark size={10} /> rejected</span>
+                        )}
+                        {annotation.status === 'failed' && (
+                          <span className={styles.markerStatus}><IconXmark size={10} /> failed</span>
+                        )}
+                        {annotation.status === 'interrupted' && (
+                          <span className={styles.markerStatus}><IconPause size={10} /> interrupted</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2185,7 +2213,7 @@ export function PageFeedbackToolbarCSS({
                 onCancel={cancelAnnotation}
                 isExiting={pendingExiting}
                 lightMode={!isDarkMode}
-                enableImagePaste={apiMode}
+                enableImagePaste
                 accentColor={
                   pendingAnnotation.isMultiSelect
                     ? "#34C759"

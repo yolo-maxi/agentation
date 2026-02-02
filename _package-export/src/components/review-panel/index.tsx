@@ -26,6 +26,11 @@ export interface ReviewPanelProps {
   pollInterval?: number;
   onRefresh?: () => void;
   isDark?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showToggle?: boolean;
+  showFooter?: boolean;
+  embedded?: boolean;
 }
 
 // =============================================================================
@@ -155,8 +160,14 @@ export function ReviewPanel({
   pollInterval = 10000,
   onRefresh,
   isDark: isDarkProp,
+  isOpen: isOpenProp,
+  onOpenChange,
+  showToggle = true,
+  showFooter = true,
+  embedded = false,
 }: ReviewPanelProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpenInternal, setIsOpenInternal] = useState(false);
+  const isOpen = isOpenProp !== undefined ? isOpenProp : isOpenInternal;
   const [isDarkInternal, setIsDarkInternal] = useState(true);
   
   // Sync dark mode from toolbar's localStorage
@@ -301,23 +312,35 @@ export function ReviewPanel({
     }
   };
 
+  const handleToggle = () => {
+    const next = !isOpen;
+    if (isOpenProp === undefined) {
+      setIsOpenInternal(next);
+    }
+    onOpenChange?.(next);
+  };
+
   return (
     <>
       {/* Toggle button - sits inside toolbar */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`${styles.toggleButton} ${isOpen ? styles.active : ""}`}
-        title={isOpen ? "Close annotations" : "Open annotations"}
-      >
-        <span>{isOpen ? "✕" : (reviewCount > 0 ? "👀" : "📋")}</span>
-        {activeCount > 0 && !isOpen && (
-          <span className={styles.badge}>{activeCount}</span>
-        )}
-      </button>
+      {showToggle && (
+        <button
+          onClick={handleToggle}
+          className={`${styles.toggleButton} ${isOpen ? styles.active : ""}`}
+          title={isOpen ? "Close annotations" : "Open annotations"}
+        >
+          <span>{isOpen ? "✕" : "👀"}</span>
+          {activeCount > 0 && !isOpen && (
+            <span className={styles.badge}>{activeCount}</span>
+          )}
+        </button>
+      )}
 
       {/* Panel - fixed above toolbar */}
       {isOpen && (
-        <div className={`${styles.panel} ${!isDark ? styles.light : ""}`}>
+        <div
+          className={`${styles.panel} ${embedded ? styles.panelEmbedded : ""} ${!isDark ? styles.light : ""}`}
+        >
           <div className={styles.header}>
             <div className={styles.headerTop}>
               <h2 className={styles.title}>Annotations</h2>
@@ -467,12 +490,14 @@ export function ReviewPanel({
             )}
           </div>
 
-          <div className={styles.footer}>
-            <p className={styles.footerText}>
-              Logged in as <span className={styles.userName}>{tokenInfo.name}</span>
-              {tokenInfo.isAdmin && <span className={styles.adminBadge}>(admin)</span>}
-            </p>
-          </div>
+          {showFooter && (
+            <div className={styles.footer}>
+              <p className={styles.footerText}>
+                Logged in as <span className={styles.userName}>{tokenInfo.name}</span>
+                {tokenInfo.isAdmin && <span className={styles.adminBadge}>(admin)</span>}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

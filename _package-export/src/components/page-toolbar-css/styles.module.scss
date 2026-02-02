@@ -190,10 +190,12 @@ $green: #34c759;
         0 4px 16px rgba(0, 0, 0, 0.1);
     pointer-events: auto;
     cursor: grab;
+    overflow: visible;
 
     // Animated properties
     transition:
-        width 0.4s cubic-bezier(0.19, 1, 0.22, 1),
+        width 0.35s cubic-bezier(0.19, 1, 0.22, 1),
+        height 0.35s cubic-bezier(0.19, 1, 0.22, 1),
         transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
 
     &.dragging {
@@ -228,12 +230,15 @@ $green: #34c759;
 
     &.expanded {
         width: calc-size(auto, size);
-        height: 44px;
+        height: calc-size(auto, size);
         border-radius: 1.5rem;
         padding: 0.375rem;
+        flex-direction: column;
+        align-items: stretch;
         @supports not (width: calc-size(auto, size)) {
             width: auto; // Let it size to content
             min-width: 120px; // Minimum for 3 buttons
+            height: auto;
         }
     }
 }
@@ -261,6 +266,9 @@ $green: #34c759;
     display: flex;
     align-items: center;
     gap: 0.375rem;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
     transition:
         filter 0.8s cubic-bezier(0.19, 1, 0.22, 1),
         opacity 0.8s cubic-bezier(0.19, 1, 0.22, 1),
@@ -280,6 +288,29 @@ $green: #34c759;
         transform: scale(0.4);
         pointer-events: none;
     }
+}
+
+.controlsRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    width: 100%;
+}
+
+.userHandle {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    white-space: nowrap;
+    cursor: default;
+}
+
+.reviewToggleIcon {
+    font-size: 14px;
+    line-height: 1;
 }
 
 .badge {
@@ -968,6 +999,10 @@ $green: #34c759;
         }
     }
 
+    .userHandle {
+        color: rgba(0, 0, 0, 0.6);
+    }
+
     // Button tooltips
     &.buttonTooltip {
         background: #fff;
@@ -1010,7 +1045,7 @@ $green: #34c759;
 }
 
 // =============================================================================
-// Marker Actions (API Mode)
+// Marker Actions
 // =============================================================================
 
 .markerActions {
