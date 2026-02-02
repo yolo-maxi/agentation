@@ -1357,7 +1357,7 @@ export function PageFeedbackToolbarCSS({
 
         // Constrain to viewport
         const padding = 20;
-        const containerWidth = 257;
+        const containerWidth = isReviewOpen ? 384 : 257;
         const circleWidth = 44;
         const toolbarHeight = 44;
 
@@ -1406,7 +1406,7 @@ export function PageFeedbackToolbarCSS({
       document.removeEventListener("mousemove", handleMouseMove);
       document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragStartPos, isDraggingToolbar, isActive]);
+  }, [dragStartPos, isDraggingToolbar, isActive, isReviewOpen]);
 
   // Handle toolbar drag start
   const handleToolbarMouseDown = useCallback(
@@ -1450,7 +1450,7 @@ export function PageFeedbackToolbarCSS({
 
     const constrainPosition = () => {
       const padding = 20;
-      const containerWidth = 257;
+      const containerWidth = isReviewOpen ? 384 : 257;
       const circleWidth = 44;
       const toolbarHeight = 44;
 
@@ -1488,7 +1488,7 @@ export function PageFeedbackToolbarCSS({
 
     window.addEventListener("resize", constrainPosition);
     return () => window.removeEventListener("resize", constrainPosition);
-  }, [toolbarPosition, isActive]);
+  }, [toolbarPosition, isActive, isReviewOpen]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1568,7 +1568,7 @@ export function PageFeedbackToolbarCSS({
     <>
       {/* Toolbar */}
       <div
-        className={styles.toolbar}
+        className={`${styles.toolbar} ${isReviewOpen ? styles.reviewExpanded : ""}`}
         data-feedback-toolbar
         style={
           toolbarPosition
@@ -1664,7 +1664,12 @@ export function PageFeedbackToolbarCSS({
             )}
             <div className={styles.controlsRow}>
               {editToken && tokenInfo?.valid && tokenInfo?.name && (
-                <span className={styles.userHandle}>@{tokenInfo.name}</span>
+                <span
+                  className={styles.userHandle}
+                  style={{ color: annotationColor }}
+                >
+                  @{tokenInfo.name}
+                </span>
               )}
               <div
                 className={`${styles.buttonWrapper} ${
