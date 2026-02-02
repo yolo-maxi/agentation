@@ -182,7 +182,7 @@ export default function OutputPage() {
 
       <section>
         <p>
-          When you copy, you get structured markdown that agents can parse and act on.
+          When you submit, you send structured data that agents can parse and act on.
           Four formats are available:
         </p>
         {outputFormat && (

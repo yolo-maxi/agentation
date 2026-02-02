@@ -343,11 +343,6 @@ function App() {
                 <td style={{ padding: "0.5rem 1rem 0.5rem 0" }}><code>(annotation: Annotation) =&gt; void</code></td>
                 <td style={{ padding: "0.5rem 0" }}>Callback fired when an annotation is added</td>
               </tr>
-              <tr>
-                <td style={{ padding: "0.5rem 1rem 0.5rem 0" }}><code>copyToClipboard</code></td>
-                <td style={{ padding: "0.5rem 1rem 0.5rem 0" }}><code>boolean</code></td>
-                <td style={{ padding: "0.5rem 0" }}>Whether to copy to clipboard (default: <code>true</code>)</td>
-              </tr>
             </tbody>
           </table>
         </section>
@@ -375,10 +370,7 @@ function App() {
   return (
     <>
       <YourApp />
-      <Agentation
-        onAnnotationAdd={handleAnnotation}
-        copyToClipboard={false}  // Skip clipboard if handling via callback
-      />
+      <Agentation onAnnotationAdd={handleAnnotation} />
     </>
   );
 }`}
@@ -390,17 +382,16 @@ function App() {
           <h2>Security notes</h2>
           <p>
             Agentation runs in your browser and reads DOM content to generate
-            feedback. It does <strong>not</strong> send data anywhere &mdash;
-            everything stays local until you manually copy and paste.
+            feedback. In API mode, annotations are sent to your configured backend.
           </p>
           <ul>
             <li>
-              <strong>No network requests</strong> &mdash; all processing is
-              client-side
+              <strong>API mode only</strong> &mdash; network requests go only to
+              your configured backend
             </li>
             <li>
-              <strong>No data collection</strong> &mdash; nothing is tracked or
-              stored remotely
+              <strong>Your data</strong> &mdash; annotations stay within your
+              infrastructure
             </li>
             <li>
               <strong>Dev-only</strong> &mdash; use the <code>NODE_ENV</code>{" "}

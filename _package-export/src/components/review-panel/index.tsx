@@ -19,6 +19,11 @@ import styles from "./styles.module.scss";
 export interface ReviewPanelProps {
   editToken: string;
   tokenInfo: TokenValidation;
+  apiEndpoint?: string;
+  enableMultiplayerFilter?: boolean;
+  defaultFilter?: "active" | "review" | "mine" | "multiplayer";
+  onAnnotationsLoaded?: (annotations: AnnotationSummary[]) => void;
+  pollInterval?: number;
   onRefresh?: () => void;
   isDark?: boolean;
 }
@@ -140,7 +145,17 @@ function RevisionModal({ annotation, onSubmit, onCancel, isLoading, isDark }: Re
 // Main Component
 // =============================================================================
 
-export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkProp }: ReviewPanelProps) {
+export function ReviewPanel({
+  editToken,
+  tokenInfo,
+  apiEndpoint,
+  enableMultiplayerFilter = true,
+  defaultFilter,
+  onAnnotationsLoaded,
+  pollInterval = 10000,
+  onRefresh,
+  isDark: isDarkProp,
+}: ReviewPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isDarkInternal, setIsDarkInternal] = useState(true);
   
@@ -159,30 +174,33 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const isDark = isDarkProp !== undefined ? isDarkProp : isDarkInternal;
   
   const [annotations, setAnnotations] = useState<AnnotationSummary[]>([]);
-  const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => {
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set();
-    const saved = localStorage.getItem('hidden_annotations');
+    const saved = localStorage.getItem('archived_annotations');
     return saved ? new Set(JSON.parse(saved)) : new Set();
   });
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [revisionTarget, setRevisionTarget] = useState<AnnotationSummary | null>(null);
-  const [filter, setFilter] = useState<"active" | "review" | "mine" | "all">("active");
-  const [showHidden, setShowHidden] = useState(false);
+  const [filter, setFilter] = useState<"active" | "review" | "mine" | "multiplayer">(
+    defaultFilter ?? "active",
+  );
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('hidden_annotations', JSON.stringify([...hiddenIds]));
+      localStorage.setItem('archived_annotations', JSON.stringify([...archivedIds]));
     }
-  }, [hiddenIds]);
+  }, [archivedIds]);
 
   const loadAnnotations = useCallback(async () => {
     setIsLoading(true);
-    const data = await fetchAnnotations(editToken, true);
+    const data = await fetchAnnotations(editToken, true, apiEndpoint);
     data.sort((a, b) => b.timestamp - a.timestamp);
     setAnnotations(data);
+    onAnnotationsLoaded?.(data);
     setIsLoading(false);
-  }, [editToken]);
+  }, [editToken, apiEndpoint, onAnnotationsLoaded]);
 
   useEffect(() => {
     if (isOpen) loadAnnotations();
@@ -190,13 +208,13 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
 
   useEffect(() => {
     if (!isOpen) return;
-    const interval = setInterval(loadAnnotations, 10000);
+    const interval = setInterval(loadAnnotations, pollInterval);
     return () => clearInterval(interval);
-  }, [isOpen, loadAnnotations]);
+  }, [isOpen, loadAnnotations, pollInterval]);
 
   const handleApprove = async (id: string) => {
     setActionLoading(id);
-    const result = await approveAnnotation(editToken, id);
+    const result = await approveAnnotation(editToken, id, apiEndpoint);
     if (result.success) {
       await loadAnnotations();
       onRefresh?.();
@@ -209,7 +227,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const handleReject = async (id: string) => {
     const reason = prompt("Reason for rejection (optional):");
     setActionLoading(id);
-    const result = await rejectAnnotation(editToken, id, reason || undefined);
+    const result = await rejectAnnotation(editToken, id, reason || undefined, apiEndpoint);
     if (result.success) {
       await loadAnnotations();
       onRefresh?.();
@@ -222,7 +240,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const handleRevisionSubmit = async (promptText: string) => {
     if (!revisionTarget) return;
     setActionLoading(revisionTarget.id);
-    const result = await reviseAnnotation(editToken, revisionTarget.id, promptText);
+    const result = await reviseAnnotation(editToken, revisionTarget.id, promptText, apiEndpoint);
     if (result.success) {
       setRevisionTarget(null);
       await loadAnnotations();
@@ -233,12 +251,12 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
     setActionLoading(null);
   };
 
-  const handleHide = (id: string) => {
-    setHiddenIds(prev => new Set([...prev, id]));
+  const handleArchive = (id: string) => {
+    setArchivedIds(prev => new Set([...prev, id]));
   };
 
-  const handleUnhide = (id: string) => {
-    setHiddenIds(prev => {
+  const handleUnarchive = (id: string) => {
+    setArchivedIds(prev => {
       const next = new Set(prev);
       next.delete(id);
       return next;
@@ -248,7 +266,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   const handleCancel = async (id: string) => {
     if (!confirm("Cancel this annotation? It will be marked as rejected.")) return;
     setActionLoading(id);
-    const result = await cancelAnnotation(editToken, id);
+    const result = await cancelAnnotation(editToken, id, undefined, apiEndpoint);
     if (result.success) {
       await loadAnnotations();
     }
@@ -256,29 +274,30 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
   };
 
   const filteredAnnotations = annotations.filter((a) => {
-    const isHidden = hiddenIds.has(a.id);
-    if (showHidden) return isHidden;
-    if (isHidden) return false;
+    const isArchived = archivedIds.has(a.id);
+    if (showArchived) return isArchived;
+    if (isArchived) return false;
     if (filter === "active") {
       return ["pending", "processing", "implemented", "revision_requested"].includes(a.status);
     }
     if (filter === "review") return a.status === "implemented";
     if (filter === "mine") return a.isOwn;
+    if (filter === "multiplayer") return !a.isOwn;
     return true;
   });
 
-  const reviewCount = annotations.filter((a) => a.status === "implemented" && !hiddenIds.has(a.id)).length;
+  const reviewCount = annotations.filter((a) => a.status === "implemented" && !archivedIds.has(a.id)).length;
   const activeCount = annotations.filter((a) =>
-    ["pending", "processing", "implemented", "revision_requested"].includes(a.status) && !hiddenIds.has(a.id)
+    ["pending", "processing", "implemented", "revision_requested"].includes(a.status) && !archivedIds.has(a.id)
   ).length;
 
   const getActions = (a: AnnotationSummary) => {
     const canManage = a.isOwn || tokenInfo.isAdmin;
     switch (a.status) {
-      case "pending": return canManage ? ["cancel", "hide"] : ["hide"];
-      case "processing": return ["hide"];
-      case "implemented": return canManage ? ["approve", "edit", "reject"] : ["hide"];
-      default: return ["hide"];
+      case "pending": return canManage ? ["cancel", "archive"] : ["archive"];
+      case "processing": return ["archive"];
+      case "implemented": return canManage ? ["approve", "edit", "reject"] : ["archive"];
+      default: return ["archive"];
     }
   };
 
@@ -288,7 +307,7 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`${styles.toggleButton} ${isOpen ? styles.active : ""}`}
-        title={isOpen ? "Close pending items" : "Open pending items"}
+        title={isOpen ? "Close annotations" : "Open annotations"}
       >
         <span>{isOpen ? "✕" : (reviewCount > 0 ? "👀" : "📋")}</span>
         {activeCount > 0 && !isOpen && (
@@ -301,15 +320,15 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
         <div className={`${styles.panel} ${!isDark ? styles.light : ""}`}>
           <div className={styles.header}>
             <div className={styles.headerTop}>
-              <h2 className={styles.title}>Pending Items</h2>
+              <h2 className={styles.title}>Annotations</h2>
               <div className={styles.headerActions}>
                 <button
-                  onClick={() => setShowHidden(!showHidden)}
-                  className={`${styles.iconButton} ${showHidden ? styles.active : ""}`}
-                  title={showHidden ? "Show active" : "Show hidden"}
+                  onClick={() => setShowArchived(!showArchived)}
+                  className={`${styles.iconButton} ${showArchived ? styles.active : ""}`}
+                  title={showArchived ? "Show active" : "Show archived"}
                 >
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    {showHidden ? (
+                    {showArchived ? (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     ) : (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
@@ -329,13 +348,13 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
               </div>
             </div>
 
-            {!showHidden && (
+            {!showArchived && (
               <div className={styles.filters}>
                 {[
                   { key: "active", label: `Active (${activeCount})` },
                   { key: "review", label: `Review (${reviewCount})`, highlight: reviewCount > 0 },
                   { key: "mine", label: "Mine" },
-                  { key: "all", label: "All" },
+                  ...(enableMultiplayerFilter ? [{ key: "multiplayer", label: "Multiplayer" }] : []),
                 ].map(({ key, label, highlight }) => (
                   <button
                     key={key}
@@ -347,21 +366,21 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
                 ))}
               </div>
             )}
-            {showHidden && (
-              <p className={styles.hiddenCount}>Showing {hiddenIds.size} hidden item(s)</p>
+            {showArchived && (
+              <p className={styles.hiddenCount}>Showing {archivedIds.size} archived item(s)</p>
             )}
           </div>
 
           <div className={styles.listContainer}>
             {filteredAnnotations.length === 0 ? (
               <div className={styles.emptyState}>
-                {isLoading ? "Loading..." : showHidden ? "No hidden items" : "No pending items"}
+                {isLoading ? "Loading..." : showArchived ? "No archived items" : "No annotations"}
               </div>
             ) : (
               <div className={styles.list}>
                 {filteredAnnotations.map((a) => {
                   const actions = getActions(a);
-                  const isHidden = hiddenIds.has(a.id);
+                  const isArchived = archivedIds.has(a.id);
 
                   return (
                     <div key={a.id} className={styles.item}>
@@ -381,12 +400,12 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
                       <p className={styles.element}>{a.element}</p>
 
                       <div className={styles.actions}>
-                        {isHidden ? (
+                        {isArchived ? (
                           <button
-                            onClick={() => handleUnhide(a.id)}
+                            onClick={() => handleUnarchive(a.id)}
                             className={`${styles.actionButton} ${styles.hideButton}`}
                           >
-                            Unhide
+                            Unarchive
                           </button>
                         ) : (
                           <>
@@ -426,12 +445,12 @@ export function ReviewPanel({ editToken, tokenInfo, onRefresh, isDark: isDarkPro
                                 Cancel
                               </button>
                             )}
-                            {actions.includes("hide") && (
+                            {actions.includes("archive") && (
                               <button
-                                onClick={() => handleHide(a.id)}
+                                onClick={() => handleArchive(a.id)}
                                 className={`${styles.actionButton} ${styles.hideButton}`}
                               >
-                                Hide
+                                Archive
                               </button>
                             )}
                           </>

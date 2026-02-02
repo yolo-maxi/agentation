@@ -78,28 +78,6 @@ export default function APIPage() {
               </div>
               <p className="prop-desc">Called when an annotation comment is edited</p>
             </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onAnnotationsClear</code>
-                <span className="prop-type">(annotations: Annotation[]) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Called when all annotations are cleared</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">onCopy</code>
-                <span className="prop-type">(markdown: string) =&gt; void</span>
-              </div>
-              <p className="prop-desc">Callback with the markdown output when copy is clicked</p>
-            </div>
-            <div className="prop-item">
-              <div className="prop-header">
-                <code className="prop-name">copyToClipboard</code>
-                <span className="prop-type">boolean</span>
-                <span className="prop-default">default: true</span>
-              </div>
-              <p className="prop-desc">Set to false to prevent writing to clipboard (if handling via onCopy)</p>
-            </div>
           </div>
         </section>
 

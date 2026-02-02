@@ -224,24 +224,6 @@ export default function LogicPage() {
 
       {/* ========================================================================= */}
       <section>
-        <h2>Settings Panel</h2>
-
-        <h3>Visibility Logic</h3>
-        <ul>
-          <li>Uses two states: <code>showSettings</code> (desired) and <code>showSettingsVisible</code> (for animation)</li>
-          <li>When closing: <code>showSettings</code> → false immediately, <code>showSettingsVisible</code> → false after 150ms</li>
-          <li>Auto-closes when toolbar closes</li>
-        </ul>
-
-        <h3>Styling</h3>
-        <ul>
-          <li>Always uses dark theme (matches toolbar aesthetic)</li>
-          <li>Position: absolute, anchored to bottom of toolbar</li>
-        </ul>
-      </section>
-
-      {/* ========================================================================= */}
-      <section>
         <h2>Performance Optimizations</h2>
 
         <h3>CSS Performance</h3>

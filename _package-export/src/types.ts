@@ -2,7 +2,18 @@
 // Shared Types
 // =============================================================================
 
-export type AnnotationStatus = "draft" | "pending" | "processing" | "completed" | "interrupted" | "failed" | "rejected";
+export type AnnotationStatus =
+  | "draft"
+  | "pending"
+  | "processing"
+  | "implemented"
+  | "approved"
+  | "completed"
+  | "rejected"
+  | "revision_requested"
+  | "failed"
+  | "interrupted"
+  | "archived";
 
 export type Annotation = {
   id: string;
@@ -46,7 +57,6 @@ export type SendResult = {
 //   zIndexBase?: number;
 //   retentionDays?: number;
 //   storage?: StorageAdapter;
-//   onCopy?: (markdown: string) => void | Promise<void>;
 // }
 //
 // export interface StorageAdapter {

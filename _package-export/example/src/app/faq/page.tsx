@@ -19,7 +19,7 @@ const faqCategories: FAQCategory[] = [
     items: [
       {
         question: "What is Agentation?",
-        answer: "Agentation is a floating toolbar that lets you annotate web pages and generate structured feedback for AI coding agents. Click elements, select text, and copy markdown that agents can parse to find and fix issues in your codebase.</p><p>It grew out of <a href=\"https://benji.org/annotating\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"faq-link\">a post by Benji Taylor</a> exploring how to give better feedback to AI agents, and has since been packaged for anyone to use."
+        answer: "Agentation is a floating toolbar that lets you annotate web pages and send structured feedback to AI coding agents. Click elements, select text, and the data is sent to your backend for processing.</p><p>It grew out of <a href=\"https://benji.org/annotating\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"faq-link\">a post by Benji Taylor</a> exploring how to give better feedback to AI agents, and has since been packaged for anyone to use."
       },
       {
         question: "Why not just screenshot and annotate?",
@@ -77,7 +77,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Can multiple people share annotations?",
-        answer: "Annotations are stored locally in each user's browser, so they're not shared automatically. For collaboration, copy and share the markdown output directly."
+        answer: "Annotations are tied to your backend API and can be shared across users by enabling the multiplayer filter in the review panel."
       },
     ]
   },
@@ -90,7 +90,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: "Does it work with TypeScript?",
-        answer: "Yes. Agentation is written in TypeScript and exports full type definitions. Props like <code>demoAnnotations</code> and configuration options are fully typed."
+        answer: "Yes. Agentation is written in TypeScript and exports full type definitions for its props and data structures."
       },
       {
         question: "Does it work with SSR/SSG?",

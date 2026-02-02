@@ -1,9 +1,9 @@
 # agentation
 
-Agentation is a visual feedback tool for web apps. Click elements to annotate them, then either copy to clipboard or send to an API for automated processing.
+Agentation is a visual feedback tool for web apps. Click elements to annotate them, then auto-send to an API for automated processing.
 
 **This fork adds:**
-- 🌐 **API Mode** – Send annotations to a backend instead of clipboard
+- 🌐 **API Mode** – Send annotations to a backend for processing
 - 👥 **Multiplayer** – See annotations from other users in real-time
 - ⚡ **Auto-processing** – Integrate with Claude CLI for automated feedback handling
 - 🏷️ **Status tracking** – Track annotation lifecycle (pending → processing → done)
@@ -16,7 +16,7 @@ Agentation is a visual feedback tool for web apps. Click elements to annotate th
 npm install agentation-flow
 ```
 
-> Note: This is a fork of the original [agentation](https://www.npmjs.com/package/agentation) with API mode and multiplayer. If you just need clipboard mode, use the original.
+> Note: This is a fork of the original [agentation](https://www.npmjs.com/package/agentation) with API mode and multiplayer.
 
 ## Basic Usage (Clipboard Mode)
 
@@ -37,7 +37,7 @@ Click the toolbar in the bottom-right corner, then click any element to annotate
 
 ## API Mode
 
-Send annotations to a backend API instead of clipboard:
+Send annotations to a backend API:
 
 ```tsx
 import { Agentation, type Annotation } from 'agentation-flow';
@@ -86,9 +86,7 @@ Enable real-time visibility of all annotations in a project:
 ```
 
 When multiplayer is on:
-- See annotations from all users on the same project
-- Each user gets a unique color
-- Click remote annotations to view details
+- Review panel can filter to other users' annotations
 - Status updates sync in real-time
 
 ## Props
@@ -100,9 +98,6 @@ When multiplayer is on:
 | `onAnnotationAdd` | `(annotation) => void` | - | Called when annotation created |
 | `onAnnotationDelete` | `(annotation) => void` | - | Called when annotation deleted |
 | `onAnnotationUpdate` | `(annotation) => void` | - | Called when annotation edited |
-| `onAnnotationsClear` | `(annotations[]) => void` | - | Called when all cleared |
-| `onCopy` | `(markdown: string) => void` | - | Callback with markdown output |
-| `copyToClipboard` | `boolean` | `true` | Write to clipboard on copy |
 
 ### API Mode Props
 
@@ -114,8 +109,8 @@ When multiplayer is on:
 | `onSend` | `(annotations) => Promise<SendResult[]>` | - | Send handler |
 | `onStatusChange` | `(annotation) => void` | - | Called on status update |
 | `pollInterval` | `number` | `20000` | Polling interval (ms) |
-| `multiplayerMode` | `boolean` | `false` | Show multiplayer toggle |
-| `defaultMultiplayer` | `boolean` | `false` | Default multiplayer state |
+| `multiplayerMode` | `boolean` | `false` | Enable multiplayer filter in review panel |
+| `defaultMultiplayer` | `boolean` | `false` | Default review panel filter to multiplayer |
 
 ## Types
 

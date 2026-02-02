@@ -9,38 +9,22 @@ import {
 } from "../annotation-popup-css";
 import {
   IconListSparkle,
-  IconPlayAlt,
-  IconPauseAlt,
   IconClose,
   IconPlus,
-  IconGear,
-  IconCheck,
   IconCheckSmall,
-  IconCheckSmallAnimated,
-  IconHelp,
-  AnimatedBunny,
-  IconEye,
-  IconEyeMinus,
-  IconCopyAlt,
-  IconCopyAnimated,
   IconTrashAlt,
   IconXmark,
-  IconCheckmark,
-  IconCheckmarkLarge,
-  IconCheckmarkCircle,
   IconPause,
   IconEyeAnimated,
   IconPausePlayAnimated,
   IconSun,
   IconMoon,
   IconXmarkLarge,
-  IconSend,
   IconPencil,
   IconSpinner,
   IconClock,
-  IconCursor,
-  IconCrosshair,
 } from "../icons";
+import { ReviewPanel } from "../review-panel";
 import {
   identifyElement,
   getNearbyText,
@@ -59,6 +43,7 @@ import {
 } from "../../utils/storage";
 
 import type { Annotation } from "../../types";
+import { validateToken, type AnnotationSummary, type TokenValidation } from "../../api";
 import styles from "./styles.module.scss";
 
 // Module-level flag to prevent re-animating on SPA page navigation
@@ -74,38 +59,8 @@ type HoverInfo = {
   rect: DOMRect | null;
 };
 
-type OutputDetailLevel = "compact" | "standard" | "detailed" | "forensic";
-
-type ToolbarSettings = {
-  outputDetail: OutputDetailLevel;
-  autoClearAfterCopy: boolean;
-  annotationColor: string;
-  blockInteractions: boolean;
-};
-
-const DEFAULT_SETTINGS: ToolbarSettings = {
-  outputDetail: "standard",
-  autoClearAfterCopy: false,
-  annotationColor: "#3c82f7",
-  blockInteractions: false,
-};
-
-const OUTPUT_DETAIL_OPTIONS: { value: OutputDetailLevel; label: string }[] = [
-  { value: "compact", label: "Compact" },
-  { value: "standard", label: "Standard" },
-  { value: "detailed", label: "Detailed" },
-  { value: "forensic", label: "Forensic" },
-];
-
-const COLOR_OPTIONS = [
-  { value: "#AF52DE", label: "Purple" },
-  { value: "#3c82f7", label: "Blue" },
-  { value: "#5AC8FA", label: "Cyan" },
-  { value: "#34C759", label: "Green" },
-  { value: "#FFD60A", label: "Yellow" },
-  { value: "#FF9500", label: "Orange" },
-  { value: "#FF3B30", label: "Red" },
-];
+const DEFAULT_ANNOTATION_COLOR = "#3c82f7";
+const DEFAULT_BLOCK_INTERACTIONS = false;
 
 // =============================================================================
 // Utils
@@ -160,152 +115,21 @@ function isElementFixed(element: HTMLElement): boolean {
   return false;
 }
 
-function hexToRgba(hex: string, alpha: number): string {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function getActiveButtonStyle(
-  isActive: boolean,
-  color: string,
-): React.CSSProperties | undefined {
-  if (!isActive) return undefined;
-  return {
-    color: color,
-    backgroundColor: hexToRgba(color, 0.25),
-  };
-}
-
-function generateOutput(
-  annotations: Annotation[],
-  pathname: string,
-  detailLevel: OutputDetailLevel = "standard",
-): string {
-  if (annotations.length === 0) return "";
-
-  const viewport =
-    typeof window !== "undefined"
-      ? `${window.innerWidth}×${window.innerHeight}`
-      : "unknown";
-
-  let output = `## Page Feedback: ${pathname}\n`;
-
-  if (detailLevel === "forensic") {
-    // Full environment info for forensic mode
-    output += `\n**Environment:**\n`;
-    output += `- Viewport: ${viewport}\n`;
-    if (typeof window !== "undefined") {
-      output += `- URL: ${window.location.href}\n`;
-      output += `- User Agent: ${navigator.userAgent}\n`;
-      output += `- Timestamp: ${new Date().toISOString()}\n`;
-      output += `- Device Pixel Ratio: ${window.devicePixelRatio}\n`;
-    }
-    output += `\n---\n`;
-  } else if (detailLevel !== "compact") {
-    output += `**Viewport:** ${viewport}\n`;
-  }
-  output += "\n";
-
-  annotations.forEach((a, i) => {
-    if (detailLevel === "compact") {
-      output += `${i + 1}. **${a.element}**: ${a.comment}`;
-      if (a.selectedText) {
-        output += ` (re: "${a.selectedText.slice(0, 30)}${a.selectedText.length > 30 ? "..." : ""}")`;
-      }
-      output += "\n";
-    } else if (detailLevel === "forensic") {
-      // Forensic mode - order matches output page example
-      output += `### ${i + 1}. ${a.element}\n`;
-      if (a.isMultiSelect && a.fullPath) {
-        output += `*Forensic data shown for first element of selection*\n`;
-      }
-      if (a.fullPath) {
-        output += `**Full DOM Path:** ${a.fullPath}\n`;
-      }
-      if (a.cssClasses) {
-        output += `**CSS Classes:** ${a.cssClasses}\n`;
-      }
-      if (a.boundingBox) {
-        output += `**Position:** x:${Math.round(a.boundingBox.x)}, y:${Math.round(a.boundingBox.y)} (${Math.round(a.boundingBox.width)}×${Math.round(a.boundingBox.height)}px)\n`;
-      }
-      output += `**Annotation at:** ${a.x.toFixed(1)}% from left, ${Math.round(a.y)}px from top\n`;
-      if (a.selectedText) {
-        output += `**Selected text:** "${a.selectedText}"\n`;
-      }
-      if (a.nearbyText && !a.selectedText) {
-        output += `**Context:** ${a.nearbyText.slice(0, 100)}\n`;
-      }
-      if (a.computedStyles) {
-        output += `**Computed Styles:** ${a.computedStyles}\n`;
-      }
-      if (a.accessibility) {
-        output += `**Accessibility:** ${a.accessibility}\n`;
-      }
-      if (a.nearbyElements) {
-        output += `**Nearby Elements:** ${a.nearbyElements}\n`;
-      }
-      output += `**Feedback:** ${a.comment}\n\n`;
-    } else {
-      // Standard and detailed modes
-      output += `### ${i + 1}. ${a.element}\n`;
-      output += `**Location:** ${a.elementPath}\n`;
-
-      if (detailLevel === "detailed") {
-        if (a.cssClasses) {
-          output += `**Classes:** ${a.cssClasses}\n`;
-        }
-
-        if (a.boundingBox) {
-          output += `**Position:** ${Math.round(a.boundingBox.x)}px, ${Math.round(a.boundingBox.y)}px (${Math.round(a.boundingBox.width)}×${Math.round(a.boundingBox.height)}px)\n`;
-        }
-      }
-
-      if (a.selectedText) {
-        output += `**Selected text:** "${a.selectedText}"\n`;
-      }
-
-      if (detailLevel === "detailed" && a.nearbyText && !a.selectedText) {
-        output += `**Context:** ${a.nearbyText.slice(0, 100)}\n`;
-      }
-
-      output += `**Feedback:** ${a.comment}\n\n`;
-    }
-  });
-
-  return output.trim();
-}
 
 // =============================================================================
 // Types for Props
 // =============================================================================
 
-export type DemoAnnotation = {
-  selector: string;
-  comment: string;
-  selectedText?: string;
-};
-
 export type PageFeedbackToolbarCSSProps = {
-  demoAnnotations?: DemoAnnotation[];
-  demoDelay?: number;
-  enableDemoMode?: boolean;
   /** Callback fired when an annotation is added. */
   onAnnotationAdd?: (annotation: Annotation) => void;
   /** Callback fired when an annotation is deleted. */
   onAnnotationDelete?: (annotation: Annotation) => void;
   /** Callback fired when an annotation comment is edited. */
   onAnnotationUpdate?: (annotation: Annotation) => void;
-  /** Callback fired when all annotations are cleared. Receives the annotations that were cleared. */
-  onAnnotationsClear?: (annotations: Annotation[]) => void;
-  /** Callback fired when the copy button is clicked. Receives the markdown output. */
-  onCopy?: (markdown: string) => void;
-  /** Whether to copy to clipboard when the copy button is clicked. Defaults to true. */
-  copyToClipboard?: boolean;
   
   // === API Mode Props ===
-  /** Enable API mode - shows batch panel and send button instead of copy */
+  /** Enable API mode - auto-sends annotations and shows review panel */
   apiMode?: boolean;
   /** API endpoint for submitting annotations */
   apiEndpoint?: string;
@@ -317,9 +141,9 @@ export type PageFeedbackToolbarCSSProps = {
   onStatusChange?: (annotation: Annotation) => void;
   /** Polling interval in ms for checking annotation status. Default: 20000 (20s) */
   pollInterval?: number;
-  /** Enable multiplayer mode - shows all users' annotations, not just your own */
+  /** Enable multiplayer filter in the review panel */
   multiplayerMode?: boolean;
-  /** Default multiplayer state (can be toggled by user) */
+  /** Default review panel filter to multiplayer */
   defaultMultiplayer?: boolean;
   /** Custom buttons to render in the toolbar */
   customButtons?: React.ReactNode;
@@ -333,15 +157,9 @@ export type AgentationProps = PageFeedbackToolbarCSSProps;
 // =============================================================================
 
 export function PageFeedbackToolbarCSS({
-  demoAnnotations,
-  demoDelay = 1000,
-  enableDemoMode = false,
   onAnnotationAdd,
   onAnnotationDelete,
   onAnnotationUpdate,
-  onAnnotationsClear,
-  onCopy,
-  copyToClipboard = true,
   // API mode props
   apiMode = false,
   apiEndpoint,
@@ -380,9 +198,6 @@ export function PageFeedbackToolbarCSS({
     computedStylesObj?: Record<string, string>;
     nearbyElements?: string;
   } | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [cleared, setCleared] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
   const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
   const [deletingMarkerId, setDeletingMarkerId] = useState<string | null>(null);
   const [renumberFrom, setRenumberFrom] = useState<number | null>(null);
@@ -393,8 +208,6 @@ export function PageFeedbackToolbarCSS({
   const [isScrolling, setIsScrolling] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isFrozen, setIsFrozen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [showSettingsVisible, setShowSettingsVisible] = useState(false);
   const [tooltipsHidden, setTooltipsHidden] = useState(false);
 
   // Hide tooltips after button click until mouse leaves
@@ -405,36 +218,22 @@ export function PageFeedbackToolbarCSS({
   const showTooltipsAgain = () => {
     setTooltipsHidden(false);
   };
-  const [settings, setSettings] = useState<ToolbarSettings>(DEFAULT_SETTINGS);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showEntranceAnimation, setShowEntranceAnimation] = useState(false);
+  const annotationColor = DEFAULT_ANNOTATION_COLOR;
+  const blockInteractions = DEFAULT_BLOCK_INTERACTIONS;
 
   // API mode state
-  const [isSending, setIsSending] = useState(false);
-  const [showBatchPanel, setShowBatchPanel] = useState(false);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  
-  // Multiplayer mode - shows all users' annotations
-  const [isMultiplayer, setIsMultiplayer] = useState(defaultMultiplayer);
-  const [remoteAnnotations, setRemoteAnnotations] = useState<Annotation[]>([]);
-  const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set());
-  const [showArchived, setShowArchived] = useState(false);
-  const [listExpanded, setListExpanded] = useState(false);
-  const [panelCollapsed, setPanelCollapsed] = useState(true); // Start collapsed for cleaner UI
-  const [selectedRemoteId, setSelectedRemoteId] = useState<string | null>(null);
-  const VISIBLE_COUNT = 5; // Show last 5 by default
+  const [tokenInfo, setTokenInfo] = useState<TokenValidation | null>(null);
   
   // Click mode - when true, user can interact with UI normally (no annotation creation)
   const [clickMode, setClickMode] = useState(false);
-  
-  // Auto-send countdown timers (annotation id → seconds remaining)
-  const [countdowns, setCountdowns] = useState<Record<string, number>>({});
   
   // Presence tracking - who else is viewing this page
   const [viewers, setViewers] = useState<Array<{ editToken: string; userName?: string; cursorX?: number; cursorY?: number; lastSeen: number }>>([]);
   const lastCursorPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const presenceIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const countdownTimersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+  const autoSendTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Draggable toolbar state
   const [toolbarPosition, setToolbarPosition] = useState<{
@@ -477,16 +276,6 @@ export function PageFeedbackToolbarCSS({
 
   const pathname =
     typeof window !== "undefined" ? window.location.pathname : "/";
-
-  // Handle showSettings changes with exit animation
-  useEffect(() => {
-    if (showSettings) {
-      setShowSettingsVisible(true);
-    } else {
-      const timer = setTimeout(() => setShowSettingsVisible(false), 0);
-      return () => clearTimeout(timer);
-    }
-  }, [showSettings]);
 
   // Unified marker visibility - depends on BOTH toolbar active AND showMarkers toggle
   // This single effect handles all marker show/hide animations
@@ -533,15 +322,6 @@ export function PageFeedbackToolbarCSS({
       setTimeout(() => setShowEntranceAnimation(false), 750);
     }
 
-    try {
-      const storedSettings = localStorage.getItem("feedback-toolbar-settings");
-      if (storedSettings) {
-        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(storedSettings) });
-      }
-    } catch (e) {
-      // Ignore parsing errors
-    }
-
     // Load saved theme preference, default to dark mode
     try {
       const savedTheme = localStorage.getItem("feedback-toolbar-theme");
@@ -554,16 +334,6 @@ export function PageFeedbackToolbarCSS({
     }
   }, [pathname]);
 
-  // Save settings
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(
-        "feedback-toolbar-settings",
-        JSON.stringify(settings),
-      );
-    }
-  }, [settings, mounted]);
-
   // Save theme preference
   useEffect(() => {
     if (mounted) {
@@ -574,59 +344,20 @@ export function PageFeedbackToolbarCSS({
     }
   }, [isDarkMode, mounted]);
 
-  // Demo annotations
   useEffect(() => {
-    if (!enableDemoMode) return;
-    if (!mounted || !demoAnnotations || demoAnnotations.length === 0) return;
-    if (annotations.length > 0) return;
-
-    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
-
-    timeoutIds.push(
-      setTimeout(() => {
-        setIsActive(true);
-      }, demoDelay - 200),
-    );
-
-    demoAnnotations.forEach((demo, index) => {
-      const annotationDelay = demoDelay + index * 300;
-
-      timeoutIds.push(
-        setTimeout(() => {
-          const element = document.querySelector(demo.selector) as HTMLElement;
-          if (!element) return;
-
-          const rect = element.getBoundingClientRect();
-          const { name, path } = identifyElement(element);
-
-          const newAnnotation: Annotation = {
-            id: `demo-${Date.now()}-${index}`,
-            x: ((rect.left + rect.width / 2) / window.innerWidth) * 100,
-            y: rect.top + rect.height / 2 + window.scrollY,
-            comment: demo.comment,
-            element: name,
-            elementPath: path,
-            timestamp: Date.now(),
-            selectedText: demo.selectedText,
-            boundingBox: {
-              x: rect.left,
-              y: rect.top + window.scrollY,
-              width: rect.width,
-              height: rect.height,
-            },
-            nearbyText: getNearbyText(element),
-            cssClasses: getElementClasses(element),
-          };
-
-          setAnnotations((prev) => [...prev, newAnnotation]);
-        }, annotationDelay),
-      );
+    if (!apiMode || !editToken) {
+      setTokenInfo(null);
+      return;
+    }
+    let cancelled = false;
+    validateToken(editToken, apiEndpoint).then((info) => {
+      if (!cancelled) setTokenInfo(info);
     });
-
     return () => {
-      timeoutIds.forEach(clearTimeout);
+      cancelled = true;
     };
-  }, [enableDemoMode, mounted, demoAnnotations, demoDelay]);
+  }, [apiMode, editToken, apiEndpoint]);
+
 
   // Track scroll
   useEffect(() => {
@@ -819,14 +550,14 @@ export function PageFeedbackToolbarCSS({
       );
 
       // Block interactions on interactive elements when enabled
-      if (settings.blockInteractions && isInteractive) {
+      if (blockInteractions && isInteractive) {
         e.preventDefault();
         e.stopPropagation();
         // Still create annotation on the interactive element
       }
 
       if (pendingAnnotation) {
-        if (isInteractive && !settings.blockInteractions) {
+        if (isInteractive && !blockInteractions) {
           return;
         }
         e.preventDefault();
@@ -835,7 +566,7 @@ export function PageFeedbackToolbarCSS({
       }
 
       if (editingAnnotation) {
-        if (isInteractive && !settings.blockInteractions) {
+        if (isInteractive && !blockInteractions) {
           return;
         }
         e.preventDefault();
@@ -900,7 +631,7 @@ export function PageFeedbackToolbarCSS({
     isActive,
     pendingAnnotation,
     editingAnnotation,
-    settings.blockInteractions,
+    blockInteractions,
   ]);
 
   // Multi-select drag - mousedown
@@ -1330,80 +1061,45 @@ export function PageFeedbackToolbarCSS({
     return () => document.removeEventListener("mouseup", handleMouseUp);
   }, [isActive, isDragging]);
 
-  // Start countdown for auto-send (API mode)
-  const startCountdown = useCallback((annotationId: string) => {
+  // Schedule auto-send (API mode)
+  const startAutoSend = useCallback((annotationId: string) => {
     if (!apiMode || !onSend) return;
-    
-    // Set initial countdown
-    setCountdowns(prev => ({ ...prev, [annotationId]: 10 }));
-    
-    // Start interval
-    const timer = setInterval(() => {
-      setCountdowns(prev => {
-        const current = prev[annotationId];
-        if (current === undefined || current <= 1) {
-          // Countdown finished - trigger auto-send
-          clearInterval(timer);
-          delete countdownTimersRef.current[annotationId];
-          
-          // Get the annotation and send it
-          setAnnotations(currentAnnotations => {
-            const annotation = currentAnnotations.find(a => a.id === annotationId);
-            if (annotation && (!annotation.status || annotation.status === 'draft')) {
-              // Mark as pending and send
-              onSend([annotation]).then(results => {
-                const result = results[0];
-                setAnnotations(prev => prev.map(a => {
-                  if (a.id === annotationId) {
-                    return {
-                      ...a,
-                      status: result?.success ? 'pending' as const : 'failed' as const,
-                      remoteId: result?.remoteId,
-                    };
-                  }
-                  return a;
-                }));
-              }).catch(() => {
-                setAnnotations(prev => prev.map(a => 
-                  a.id === annotationId ? { ...a, status: 'failed' as const } : a
-                ));
-              });
-              
-              // Immediately mark as sending
-              return currentAnnotations.map(a => 
-                a.id === annotationId ? { ...a, status: 'pending' as const } : a
-              );
-            }
-            return currentAnnotations;
-          });
-          
-          const { [annotationId]: _, ...rest } = prev;
-          return rest;
-        }
-        return { ...prev, [annotationId]: current - 1 };
-      });
-    }, 1000);
-    
-    countdownTimersRef.current[annotationId] = timer;
-  }, [apiMode, onSend]);
+    if (autoSendTimersRef.current[annotationId]) return;
 
-  // Cancel countdown and remove annotation
-  const cancelCountdown = useCallback((annotationId: string) => {
-    // Clear timer
-    if (countdownTimersRef.current[annotationId]) {
-      clearInterval(countdownTimersRef.current[annotationId]);
-      delete countdownTimersRef.current[annotationId];
-    }
-    
-    // Remove from countdowns
-    setCountdowns(prev => {
-      const { [annotationId]: _, ...rest } = prev;
-      return rest;
-    });
-    
-    // Delete the annotation
-    deleteAnnotation(annotationId);
-  }, []);
+    const timer = setTimeout(() => {
+      delete autoSendTimersRef.current[annotationId];
+
+      setAnnotations(currentAnnotations => {
+        const annotation = currentAnnotations.find(a => a.id === annotationId);
+        if (annotation && (!annotation.status || annotation.status === 'draft')) {
+          onSend([annotation]).then(results => {
+            const result = results[0];
+            setAnnotations(prev => prev.map(a => {
+              if (a.id === annotationId) {
+                return {
+                  ...a,
+                  status: result?.success ? 'pending' as const : 'failed' as const,
+                  remoteId: result?.remoteId,
+                };
+              }
+              return a;
+            }));
+          }).catch(() => {
+            setAnnotations(prev => prev.map(a =>
+              a.id === annotationId ? { ...a, status: 'failed' as const } : a
+            ));
+          });
+
+          return currentAnnotations.map(a =>
+            a.id === annotationId ? { ...a, status: 'pending' as const } : a
+          );
+        }
+        return currentAnnotations;
+      });
+    }, 10000);
+
+    autoSendTimersRef.current[annotationId] = timer;
+  }, [apiMode, onSend]);
 
   // Add annotation
   const addAnnotation = useCallback(
@@ -1446,9 +1142,9 @@ export function PageFeedbackToolbarCSS({
       // Fire callback
       onAnnotationAdd?.(newAnnotation);
       
-      // In API mode, start 10s countdown for auto-send
+      // In API mode, schedule auto-send
       if (apiMode) {
-        startCountdown(newAnnotation.id);
+        startAutoSend(newAnnotation.id);
       }
 
       // Animate out the pending annotation UI
@@ -1460,7 +1156,7 @@ export function PageFeedbackToolbarCSS({
 
       window.getSelection()?.removeAllRanges();
     },
-    [pendingAnnotation, onAnnotationAdd, apiMode, startCountdown],
+    [pendingAnnotation, onAnnotationAdd, apiMode, startAutoSend],
   );
 
   // Cancel annotation with exit animation
@@ -1552,218 +1248,22 @@ export function PageFeedbackToolbarCSS({
     }, 150);
   }, []);
 
-  // Clear all with staggered animation
-  const clearAll = useCallback(() => {
-    const count = annotations.length;
-    if (count === 0) return;
-
-    // Fire callback with all annotations before clearing
-    onAnnotationsClear?.(annotations);
-
-    setIsClearing(true);
-    setCleared(true);
-
-    const totalAnimationTime = count * 30 + 200;
-    setTimeout(() => {
-      setAnnotations([]);
-      setAnimatedMarkers(new Set()); // Reset animated markers
-      localStorage.removeItem(getStorageKey(pathname));
-      setIsClearing(false);
-    }, totalAnimationTime);
-
-    setTimeout(() => setCleared(false), 1500);
-  }, [pathname, annotations, onAnnotationsClear]);
-
-  // Copy output
-  const copyOutput = useCallback(async () => {
-    const output = generateOutput(annotations, pathname, settings.outputDetail);
-    if (!output) return;
-
-    if (copyToClipboard) {
-      try {
-        await navigator.clipboard.writeText(output);
-      } catch {
-        // Clipboard may fail (permissions, not HTTPS, etc.) - continue anyway
+  const syncLocalAnnotations = useCallback((fetched: AnnotationSummary[]) => {
+    setAnnotations(prev => prev.map(a => {
+      if (!a.remoteId) return a;
+      const remote = fetched.find(r => r.id === a.remoteId);
+      if (remote && (remote.status !== a.status || remote.tokenOwner !== a.tokenOwner)) {
+        const updated = {
+          ...a,
+          status: remote.status as Annotation['status'],
+          tokenOwner: remote.tokenOwner,
+        };
+        onStatusChange?.(updated);
+        return updated;
       }
-    }
-
-    // Fire callback with markdown output (always, regardless of clipboard success)
-    onCopy?.(output);
-
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-
-    if (settings.autoClearAfterCopy) {
-      setTimeout(() => clearAll(), 500);
-    }
-  }, [
-    annotations,
-    pathname,
-    settings.outputDetail,
-    settings.autoClearAfterCopy,
-    clearAll,
-    copyToClipboard,
-    onCopy,
-  ]);
-
-  // Send single annotation (API mode)
-  const sendAnnotation = useCallback(async (annotation: Annotation) => {
-    if (!apiMode || !onSend) return;
-    
-    // Mark as pending
-    setAnnotations(prev => prev.map(a => 
-      a.id === annotation.id ? { ...a, status: 'pending' as const } : a
-    ));
-
-    try {
-      const results = await onSend([annotation]);
-      const result = results[0];
-      
-      setAnnotations(prev => prev.map(a => {
-        if (a.id === annotation.id) {
-          return {
-            ...a,
-            status: result.success ? 'pending' as const : 'failed' as const,
-            remoteId: result.remoteId,
-          };
-        }
-        return a;
-      }));
-    } catch {
-      setAnnotations(prev => prev.map(a => 
-        a.id === annotation.id ? { ...a, status: 'failed' as const } : a
-      ));
-    }
-  }, [apiMode, onSend]);
-
-  // Send all draft annotations (API mode)
-  const sendAllAnnotations = useCallback(async () => {
-    if (!apiMode || !onSend) return;
-    
-    const drafts = annotations.filter(a => !a.status || a.status === 'draft');
-    if (drafts.length === 0) return;
-
-    setIsSending(true);
-
-    // Mark all as pending
-    setAnnotations(prev => prev.map(a => 
-      drafts.some(d => d.id === a.id) ? { ...a, status: 'pending' as const } : a
-    ));
-
-    try {
-      const results = await onSend(drafts);
-      
-      setAnnotations(prev => prev.map(a => {
-        const result = results.find(r => r.id === a.id);
-        if (result) {
-          return {
-            ...a,
-            status: result.success ? 'pending' as const : 'failed' as const,
-            remoteId: result.remoteId,
-          };
-        }
-        return a;
-      }));
-    } catch {
-      setAnnotations(prev => prev.map(a => 
-        drafts.some(d => d.id === a.id) ? { ...a, status: 'failed' as const } : a
-      ));
-    } finally {
-      setIsSending(false);
-    }
-  }, [apiMode, onSend, annotations]);
-
-  // Poll for status updates (API mode)
-  const pollStatus = useCallback(async () => {
-    if (!apiMode || !apiEndpoint || !editToken) return;
-    
-    const pendingAnnotations = annotations.filter(a => 
-      a.status === 'pending' || a.status === 'processing'
-    );
-    
-    // In non-multiplayer mode, only poll when we have pending items
-    if (!isMultiplayer && pendingAnnotations.length === 0) return;
-
-    try {
-      // If multiplayer mode, fetch all annotations for this project
-      const url = isMultiplayer 
-        ? `${apiEndpoint}/api/annotations?editToken=${encodeURIComponent(editToken)}&all=true`
-        : `${apiEndpoint}/api/annotations?editToken=${encodeURIComponent(editToken)}`;
-      
-      const response = await fetch(url);
-      if (!response.ok) return;
-      
-      const fetchedAnnotations = await response.json();
-      
-      // Update our own annotations' statuses
-      setAnnotations(prev => prev.map(a => {
-        if (!a.remoteId) return a;
-        const remote = fetchedAnnotations.find((r: { id: string; status?: string; tokenOwner?: string }) => r.id === a.remoteId);
-        if (remote && (remote.status !== a.status || remote.tokenOwner !== a.tokenOwner)) {
-          const updated = { 
-            ...a, 
-            status: remote.status as Annotation['status'],
-            tokenOwner: remote.tokenOwner,
-          };
-          onStatusChange?.(updated);
-          return updated;
-        }
-        return a;
-      }));
-      
-      // In multiplayer mode, also update remote annotations (from other users)
-      if (isMultiplayer) {
-        // Filter to show only other users' annotations (not our own)
-        const myRemoteIds = new Set(annotations.map(a => a.remoteId).filter(Boolean));
-        const othersAnnotations = fetchedAnnotations
-          .filter((r: { id: string }) => !myRemoteIds.has(r.id))
-          .map((r: { id: string; element?: string; comment?: string; status?: string; tokenOwner?: string; x?: number; y?: number }) => ({
-            id: `remote-${r.id}`,
-            remoteId: r.id,
-            element: r.element || 'Unknown',
-            comment: r.comment || '',
-            status: r.status as Annotation['status'],
-            tokenOwner: r.tokenOwner,
-            x: r.x || 50,
-            y: r.y || 100,
-            elementPath: '',
-            timestamp: Date.now(),
-          }));
-        setRemoteAnnotations(othersAnnotations);
-      }
-    } catch {
-      // Polling failed, will retry on next interval
-    }
-  }, [apiMode, apiEndpoint, editToken, annotations, onStatusChange, isMultiplayer]);
-
-  // Start/stop polling based on pending annotations or multiplayer mode
-  useEffect(() => {
-    if (!apiMode) return;
-    
-    const hasPending = annotations.some(a => 
-      a.status === 'pending' || a.status === 'processing'
-    );
-    
-    // Poll if we have pending items OR if multiplayer mode is on
-    const shouldPoll = hasPending || isMultiplayer;
-    
-    if (shouldPoll && !pollingRef.current) {
-      // Poll immediately when multiplayer is enabled
-      if (isMultiplayer) pollStatus();
-      pollingRef.current = setInterval(pollStatus, pollInterval);
-    } else if (!shouldPoll && pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-      // Don't clear remote annotations - just hide them via display logic
-    }
-    
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [apiMode, annotations, pollStatus, pollInterval, isMultiplayer]);
+      return a;
+    }));
+  }, [onStatusChange]);
 
   // Presence heartbeat - send cursor position every 10 seconds when toolbar is active
   useEffect(() => {
@@ -2088,253 +1588,6 @@ export function PageFeedbackToolbarCSS({
             : undefined
         }
       >
-        {/* Batch Panel (API mode) */}
-        {apiMode && isActive && (hasAnnotations || remoteAnnotations.length > 0) && (() => {
-          // Combine all annotations for unified display
-          const allAnnotations = [
-            ...annotations.map(a => ({ ...a, isRemote: false })),
-            ...(isMultiplayer ? remoteAnnotations.map(a => ({ ...a, isRemote: true })) : []),
-          ];
-          
-          // Sort by status priority (draft/pending first, then by timestamp desc)
-          const statusPriority: Record<string, number> = {
-            draft: 0,
-            pending: 1,
-            processing: 2,
-            completed: 3,
-            interrupted: 4,
-            failed: 5,
-            rejected: 6,
-          };
-          
-          const sortedAnnotations = [...allAnnotations].sort((a, b) => {
-            const statusA = a.status || 'draft';
-            const statusB = b.status || 'draft';
-            if (statusPriority[statusA] !== statusPriority[statusB]) {
-              return statusPriority[statusA] - statusPriority[statusB];
-            }
-            return (b.timestamp || 0) - (a.timestamp || 0);
-          });
-          
-          // Filter out archived unless showing archived
-          const visibleAnnotations = sortedAnnotations.filter(a => 
-            showArchived || !archivedIds.has(a.remoteId || a.id)
-          );
-          
-          // Pagination: show only VISIBLE_COUNT unless expanded
-          const displayedAnnotations = listExpanded 
-            ? visibleAnnotations 
-            : visibleAnnotations.slice(0, VISIBLE_COUNT);
-          const hasMore = visibleAnnotations.length > VISIBLE_COUNT;
-          const hiddenCount = visibleAnnotations.length - VISIBLE_COUNT;
-          const archivedCount = sortedAnnotations.filter(a => archivedIds.has(a.remoteId || a.id)).length;
-          
-          // Count stats
-          const draftCount = allAnnotations.filter(a => !a.status || a.status === 'draft').length;
-          const implementingCount = allAnnotations.filter(a => a.status === 'pending' || a.status === 'processing').length;
-          const doneCount = allAnnotations.filter(a => a.status === 'completed').length;
-          const rejectedCount = allAnnotations.filter(a => a.status === 'rejected' || a.status === 'failed' || a.status === 'interrupted').length;
-          const totalVisible = visibleAnnotations.length;
-          
-          return (
-            <div 
-              className={`${styles.batchPanel} ${!isDarkMode ? styles.light : ""} ${listExpanded ? styles.expanded : ''} ${panelCollapsed ? styles.collapsed : ''}`}
-              data-feedback-toolbar
-              data-batch-panel
-              onClick={panelCollapsed ? () => setPanelCollapsed(false) : undefined}
-            >
-              <div className={styles.batchPanelHeader}>
-                <span className={styles.batchPanelTitle}>
-                  {totalVisible} items
-                  {!panelCollapsed && draftCount > 0 && <> · {draftCount} draft</>}
-                  {!panelCollapsed && implementingCount > 0 && <> · {implementingCount} implementing</>}
-                  {!panelCollapsed && doneCount > 0 && <> · {doneCount} done</>}
-                  {!panelCollapsed && rejectedCount > 0 && <> · {rejectedCount} rejected</>}
-                  {!panelCollapsed && archivedCount > 0 && !showArchived && (
-                    <button 
-                      className={styles.archivedToggle}
-                      onClick={(e) => { e.stopPropagation(); setShowArchived(true); }}
-                    >
-                      +{archivedCount} archived
-                    </button>
-                  )}
-                </span>
-                {/* Expand icon when collapsed */}
-                {panelCollapsed && (
-                  <span className={styles.expandIcon}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="18 15 12 9 6 15" />
-                    </svg>
-                  </span>
-                )}
-                {/* Collapse button when expanded */}
-                {!panelCollapsed && (
-                  <button
-                    className={styles.collapseBtn}
-                    onClick={(e) => { e.stopPropagation(); setPanelCollapsed(true); }}
-                    title="Collapse"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
-                )}
-                {/* Multiplayer toggle */}
-                {!panelCollapsed && multiplayerMode && (
-                  <button
-                    className={`${styles.multiplayerToggle} ${isMultiplayer ? styles.active : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMultiplayer(!isMultiplayer);
-                    }}
-                    title={isMultiplayer ? "Hide others' annotations" : "Show all annotations (multiplayer)"}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-              <div className={styles.batchPanelList}>
-                {displayedAnnotations.map((annotation) => {
-                  const userName = annotation.tokenOwner || 'You';
-                  const userColor = getUserColor(userName);
-                  const isArchived = archivedIds.has(annotation.remoteId || annotation.id);
-                  const isSelected = selectedRemoteId === (annotation.remoteId || annotation.id);
-                  
-                  return (
-                    <div
-                      key={annotation.id}
-                      className={`${styles.batchItem} ${annotation.status === 'completed' ? styles.completed : ''} ${annotation.status === 'failed' ? styles.failed : ''} ${annotation.status === 'rejected' ? styles.rejected : ''} ${isArchived ? styles.archived : ''} ${isSelected ? styles.selected : ''} ${annotation.isRemote ? styles.remote : ''}`}
-                      onClick={() => {
-                        if (annotation.isRemote) {
-                          setSelectedRemoteId(isSelected ? null : (annotation.remoteId || annotation.id));
-                        }
-                      }}
-                      style={{ cursor: annotation.isRemote ? 'pointer' : undefined }}
-                    >
-                      {/* User name tag with color instead of number */}
-                      <span 
-                        className={styles.batchItemUserTag}
-                        style={{ backgroundColor: userColor }}
-                        title={userName}
-                      >
-                        {getUserInitials(userName)}
-                      </span>
-                      <span className={styles.batchItemElement}>{annotation.element}</span>
-                      <span className={styles.batchItemComment}>
-                        {annotation.comment.length > 25 ? annotation.comment.slice(0, 25) + '...' : annotation.comment}
-                      </span>
-                      <div className={styles.batchItemStatus}>
-                        {(!annotation.status || annotation.status === 'draft') && countdowns[annotation.id] !== undefined && (
-                          <span className={styles.statusSending}>⏱️ {countdowns[annotation.id]}s</span>
-                        )}
-                        {annotation.status === 'pending' && (
-                          <span className={styles.statusPending}>⏳</span>
-                        )}
-                        {annotation.status === 'processing' && (
-                          <span className={styles.statusProcessing}>🔄</span>
-                        )}
-                        {annotation.status === 'completed' && (
-                          <span className={styles.statusCompleted}>✅</span>
-                        )}
-                        {annotation.status === 'interrupted' && (
-                          <span className={styles.statusInterrupted}>⚠️</span>
-                        )}
-                        {annotation.status === 'failed' && (
-                          <span className={styles.statusFailed}>💥</span>
-                        )}
-                        {annotation.status === 'rejected' && (
-                          <span className={styles.statusRejected}>❌</span>
-                        )}
-                      </div>
-                      <div className={styles.batchItemActions}>
-                        {/* Cancel countdown for drafts */}
-                        {countdowns[annotation.id] !== undefined && (
-                          <button
-                            className={`${styles.batchItemAction} ${styles.danger}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              cancelCountdown(annotation.id);
-                            }}
-                            title="Cancel"
-                          >
-                            <IconXmark size={10} />
-                          </button>
-                        )}
-                        {/* Archive button for completed/failed/interrupted/rejected items */}
-                        {(annotation.status === 'completed' || annotation.status === 'failed' || annotation.status === 'interrupted' || annotation.status === 'rejected') && !isArchived && (
-                          <button
-                            className={styles.batchItemAction}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setArchivedIds(prev => new Set([...prev, annotation.remoteId || annotation.id]));
-                            }}
-                            title="Archive"
-                          >
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="21 8 21 21 3 21 3 8" />
-                              <rect x="1" y="3" width="22" height="5" />
-                              <line x1="10" y1="12" x2="14" y2="12" />
-                            </svg>
-                          </button>
-                        )}
-                        {/* Unarchive button for archived items */}
-                        {isArchived && (
-                          <button
-                            className={styles.batchItemAction}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setArchivedIds(prev => {
-                                const next = new Set(prev);
-                                next.delete(annotation.remoteId || annotation.id);
-                                return next;
-                              });
-                            }}
-                            title="Unarchive"
-                          >
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polyline points="21 8 21 21 3 21 3 8" />
-                              <rect x="1" y="3" width="22" height="5" />
-                              <line x1="12" y1="10" x2="12" y2="16" />
-                              <polyline points="9 13 12 10 15 13" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* Load more / collapse controls */}
-              {hasMore && (
-                <div className={styles.batchPanelFooter}>
-                  <button
-                    className={styles.loadMoreBtn}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setListExpanded(!listExpanded);
-                    }}
-                  >
-                    {listExpanded ? 'Show less' : `Load ${hiddenCount} more`}
-                  </button>
-                  {showArchived && archivedCount > 0 && (
-                    <button
-                      className={styles.hideArchivedBtn}
-                      onClick={(e) => { e.stopPropagation(); setShowArchived(false); }}
-                    >
-                      Hide archived
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })()}
-        
         {/* Morphing container */}
         <div
           className={`${styles.toolbarContainer} ${!isDarkMode ? styles.light : ""} ${isActive ? styles.expanded : styles.collapsed} ${showEntranceAnimation ? styles.entrance : ""} ${isDraggingToolbar ? styles.dragging : ""}`}
@@ -2371,7 +1624,7 @@ export function PageFeedbackToolbarCSS({
             {hasAnnotations && (
               <span
                 className={`${styles.badge} ${isActive ? styles.fadeOut : ""} ${showEntranceAnimation ? styles.entrance : ""}`}
-                style={{ backgroundColor: settings.annotationColor }}
+                style={{ backgroundColor: annotationColor }}
               >
                 {annotations.length}
               </span>
@@ -2396,9 +1649,21 @@ export function PageFeedbackToolbarCSS({
           <div
             className={`${styles.controlsContent} ${isActive ? styles.visible : styles.hidden} ${
               toolbarPosition && toolbarPosition.y < 100 ? styles.tooltipBelow : ""
-            } ${tooltipsHidden || showSettings ? styles.tooltipsHidden : ""}`}
+            } ${tooltipsHidden ? styles.tooltipsHidden : ""}`}
             onMouseLeave={showTooltipsAgain}
           >
+            {apiMode && editToken && tokenInfo?.valid && (
+              <ReviewPanel
+                editToken={editToken}
+                tokenInfo={tokenInfo}
+                apiEndpoint={apiEndpoint}
+                enableMultiplayerFilter={multiplayerMode}
+                defaultFilter={defaultMultiplayer && multiplayerMode ? "multiplayer" : "active"}
+                pollInterval={pollInterval}
+                onAnnotationsLoaded={syncLocalAnnotations}
+                isDark={isDarkMode}
+              />
+            )}
             <div className={`${styles.buttonWrapper} ${
               toolbarPosition && toolbarPosition.x < 120 ? styles.buttonWrapperAlignLeft : ""
             }`}>
@@ -2436,75 +1701,6 @@ export function PageFeedbackToolbarCSS({
                 <span className={styles.shortcut}>H</span>
               </span>
             </div>
-
-            {!apiMode && (
-              <div className={styles.buttonWrapper}>
-                <button
-                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    hideTooltipsUntilMouseLeave();
-                    copyOutput();
-                  }}
-                  disabled={!hasAnnotations}
-                  data-active={copied}
-                >
-                  <IconCopyAnimated size={24} copied={copied} />
-                </button>
-                <span className={styles.buttonTooltip}>
-                  Copy feedback
-                  <span className={styles.shortcut}>C</span>
-                </span>
-              </div>
-            )}
-
-            {/* Hide bin button in API mode - clearing doesn't make sense when annotations persist on server */}
-            {!apiMode && (
-              <div className={styles.buttonWrapper}>
-                <button
-                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    hideTooltipsUntilMouseLeave();
-                    clearAll();
-                  }}
-                  disabled={!hasAnnotations}
-                  data-danger
-                >
-                  <IconTrashAlt size={24} />
-                </button>
-                <span className={styles.buttonTooltip}>
-                  Clear all
-                  <span className={styles.shortcut}>X</span>
-                </span>
-              </div>
-            )}
-
-            {/* Hide settings button in API mode - not used */}
-            {!apiMode && (
-              <div className={styles.buttonWrapper}>
-                <button
-                  className={`${styles.controlButton} ${!isDarkMode ? styles.light : ""}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    hideTooltipsUntilMouseLeave();
-                    setShowSettings(!showSettings);
-                  }}
-                >
-                  <IconGear size={24} />
-                </button>
-                <span className={styles.buttonTooltip}>
-                  Settings
-                </span>
-              </div>
-            )}
-
-            {/* Hide divider in API mode when settings is hidden */}
-            {!apiMode && (
-              <div
-                className={`${styles.divider} ${!isDarkMode ? styles.light : ""}`}
-              />
-            )}
 
             {/* Custom buttons slot */}
             {customButtons}
@@ -2546,188 +1742,6 @@ export function PageFeedbackToolbarCSS({
             </div>
           </div>
 
-          {/* Settings Panel */}
-          <div
-            className={`${styles.settingsPanel} ${isDarkMode ? styles.dark : styles.light} ${showSettingsVisible ? styles.enter : styles.exit}`}
-            onClick={(e) => e.stopPropagation()}
-            style={
-              toolbarPosition && toolbarPosition.y < 230
-                ? {
-                    bottom: "auto",
-                    top: "calc(100% + 0.5rem)",
-                  }
-                : undefined
-            }
-          >
-            <div className={styles.settingsHeader}>
-              <span className={styles.settingsBrand}>
-                <span
-                  className={styles.settingsBrandSlash}
-                  style={{
-                    color: settings.annotationColor,
-                    transition: "color 0.2s ease",
-                  }}
-                >
-                  /
-                </span>
-                agentation
-              </span>
-              <span className={styles.settingsVersion}>v{__VERSION__}</span>
-              <button
-                className={styles.themeToggle}
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                title={
-                  isDarkMode ? "Switch to light mode" : "Switch to dark mode"
-                }
-              >
-                {isDarkMode ? <IconSun size={14} /> : <IconMoon size={14} />}
-              </button>
-            </div>
-
-            <div className={styles.settingsSection}>
-              <div className={styles.settingsRow}>
-                <div
-                  className={`${styles.settingsLabel} ${!isDarkMode ? styles.light : ""}`}
-                >
-                  Output Detail
-                  <span
-                    className={styles.helpIcon}
-                    data-tooltip="Controls how much detail is included in the copied output"
-                  >
-                    <IconHelp size={20} />
-                  </span>
-                </div>
-                <button
-                  className={`${styles.cycleButton} ${!isDarkMode ? styles.light : ""}`}
-                  onClick={() => {
-                    const currentIndex = OUTPUT_DETAIL_OPTIONS.findIndex(
-                      (opt) => opt.value === settings.outputDetail,
-                    );
-                    const nextIndex =
-                      (currentIndex + 1) % OUTPUT_DETAIL_OPTIONS.length;
-                    setSettings((s) => ({
-                      ...s,
-                      outputDetail: OUTPUT_DETAIL_OPTIONS[nextIndex].value,
-                    }));
-                  }}
-                >
-                  <span
-                    key={settings.outputDetail}
-                    className={styles.cycleButtonText}
-                  >
-                    {
-                      OUTPUT_DETAIL_OPTIONS.find(
-                        (opt) => opt.value === settings.outputDetail,
-                      )?.label
-                    }
-                  </span>
-                  <span className={styles.cycleDots}>
-                    {OUTPUT_DETAIL_OPTIONS.map((option, i) => (
-                      <span
-                        key={option.value}
-                        className={`${styles.cycleDot} ${!isDarkMode ? styles.light : ""} ${settings.outputDetail === option.value ? styles.active : ""}`}
-                      />
-                    ))}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className={styles.settingsSection}>
-              <div
-                className={`${styles.settingsLabel} ${styles.settingsLabelMarker} ${!isDarkMode ? styles.light : ""}`}
-              >
-                Marker Colour
-              </div>
-              <div className={styles.colorOptions}>
-                {COLOR_OPTIONS.map((color) => (
-                  <div
-                    key={color.value}
-                    onClick={() =>
-                      setSettings((s) => ({
-                        ...s,
-                        annotationColor: color.value,
-                      }))
-                    }
-                    style={{
-                      borderColor:
-                        settings.annotationColor === color.value
-                          ? color.value
-                          : "transparent",
-                    }}
-                    className={`${styles.colorOptionRing} ${settings.annotationColor === color.value ? styles.selected : ""}`}
-                  >
-                    <div
-                      className={`${styles.colorOption} ${settings.annotationColor === color.value ? styles.selected : ""}`}
-                      style={{ backgroundColor: color.value }}
-                      title={color.label}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className={styles.settingsSection}>
-              <label className={styles.settingsToggle}>
-                <input
-                  type="checkbox"
-                  id="autoClearAfterCopy"
-                  checked={settings.autoClearAfterCopy}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      autoClearAfterCopy: e.target.checked,
-                    }))
-                  }
-                />
-                <label
-                  className={`${styles.customCheckbox} ${settings.autoClearAfterCopy ? styles.checked : ""}`}
-                  htmlFor="autoClearAfterCopy"
-                >
-                  {settings.autoClearAfterCopy && (
-                    <IconCheckSmallAnimated size={14} />
-                  )}
-                </label>
-                <span
-                  className={`${styles.toggleLabel} ${!isDarkMode ? styles.light : ""}`}
-                >
-                  Clear after output
-                  <span
-                    className={styles.helpIcon}
-                    data-tooltip="Automatically clear annotations after copying"
-                  >
-                    <IconHelp size={20} />
-                  </span>
-                </span>
-              </label>
-              <label className={styles.settingsToggle}>
-                <input
-                  type="checkbox"
-                  id="blockInteractions"
-                  checked={settings.blockInteractions}
-                  onChange={(e) =>
-                    setSettings((s) => ({
-                      ...s,
-                      blockInteractions: e.target.checked,
-                    }))
-                  }
-                />
-                <label
-                  className={`${styles.customCheckbox} ${settings.blockInteractions ? styles.checked : ""}`}
-                  htmlFor="blockInteractions"
-                >
-                  {settings.blockInteractions && (
-                    <IconCheckSmallAnimated size={14} />
-                  )}
-                </label>
-                <span
-                  className={`${styles.toggleLabel} ${!isDarkMode ? styles.light : ""}`}
-                >
-                  Block page interactions
-                </span>
-              </label>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -2752,11 +1766,9 @@ export function PageFeedbackToolbarCSS({
               const needsEnterAnimation = !animatedMarkers.has(annotation.id);
               const animClass = markersExiting
                 ? styles.exit
-                : isClearing
-                  ? styles.clearing
-                  : needsEnterAnimation
-                    ? styles.enter
-                    : "";
+                : needsEnterAnimation
+                  ? styles.enter
+                  : "";
 
               return (
                 <div
@@ -2822,16 +1834,6 @@ export function PageFeedbackToolbarCSS({
                                 <IconPencil size={12} />
                               </button>
                               <button
-                                className={styles.markerAction}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  sendAnnotation(annotation);
-                                }}
-                                title="Send"
-                              >
-                                <IconSend size={12} />
-                              </button>
-                              <button
                                 className={`${styles.markerAction} ${styles.danger}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -2849,8 +1851,26 @@ export function PageFeedbackToolbarCSS({
                           {annotation.status === 'processing' && (
                             <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
                           )}
+                          {annotation.status === 'implemented' && (
+                            <span className={styles.markerStatus}><IconCheckSmall size={12} /> review</span>
+                          )}
+                          {annotation.status === 'revision_requested' && (
+                            <span className={styles.markerStatus}><IconSpinner size={12} /> revising</span>
+                          )}
                           {annotation.status === 'completed' && (
                             <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
+                          )}
+                          {annotation.status === 'approved' && (
+                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> approved</span>
+                          )}
+                          {annotation.status === 'rejected' && (
+                            <span className={styles.markerStatus}><IconXmark size={10} /> rejected</span>
+                          )}
+                          {annotation.status === 'failed' && (
+                            <span className={styles.markerStatus}><IconXmark size={10} /> failed</span>
+                          )}
+                          {annotation.status === 'interrupted' && (
+                            <span className={styles.markerStatus}><IconPause size={10} /> interrupted</span>
                           )}
                         </div>
                       )}
@@ -2907,11 +1927,9 @@ export function PageFeedbackToolbarCSS({
               const needsEnterAnimation = !animatedMarkers.has(annotation.id);
               const animClass = markersExiting
                 ? styles.exit
-                : isClearing
-                  ? styles.clearing
-                  : needsEnterAnimation
-                    ? styles.enter
-                    : "";
+                : needsEnterAnimation
+                  ? styles.enter
+                  : "";
 
               return (
                 <div
@@ -2977,16 +1995,6 @@ export function PageFeedbackToolbarCSS({
                                 <IconPencil size={12} />
                               </button>
                               <button
-                                className={styles.markerAction}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  sendAnnotation(annotation);
-                                }}
-                                title="Send"
-                              >
-                                <IconSend size={12} />
-                              </button>
-                              <button
                                 className={`${styles.markerAction} ${styles.danger}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -3004,8 +2012,26 @@ export function PageFeedbackToolbarCSS({
                           {annotation.status === 'processing' && (
                             <span className={styles.markerStatus}><IconSpinner size={12} /> processing</span>
                           )}
+                          {annotation.status === 'implemented' && (
+                            <span className={styles.markerStatus}><IconCheckSmall size={12} /> review</span>
+                          )}
+                          {annotation.status === 'revision_requested' && (
+                            <span className={styles.markerStatus}><IconSpinner size={12} /> revising</span>
+                          )}
                           {annotation.status === 'completed' && (
                             <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> done</span>
+                          )}
+                          {annotation.status === 'approved' && (
+                            <span className={styles.markerStatusDone}><IconCheckSmall size={12} /> approved</span>
+                          )}
+                          {annotation.status === 'rejected' && (
+                            <span className={styles.markerStatus}><IconXmark size={10} /> rejected</span>
+                          )}
+                          {annotation.status === 'failed' && (
+                            <span className={styles.markerStatus}><IconXmark size={10} /> failed</span>
+                          )}
+                          {annotation.status === 'interrupted' && (
+                            <span className={styles.markerStatus}><IconPause size={10} /> interrupted</span>
                           )}
                         </div>
                       )}
@@ -3038,113 +2064,6 @@ export function PageFeedbackToolbarCSS({
             })}
       </div>
 
-      {/* Remote markers layer (multiplayer mode) - shows other users' annotations */}
-      {isMultiplayer && markersVisible && (
-        <div className={styles.markersLayer} data-feedback-toolbar>
-          {remoteAnnotations
-            .filter((a) => !archivedIds.has(a.remoteId || a.id))
-            .map((annotation) => {
-              const userName = annotation.tokenOwner || 'Unknown';
-              const userColor = getUserColor(userName);
-              const isSelected = selectedRemoteId === (annotation.remoteId || annotation.id);
-              const isHoveredRemote = hoveredMarkerId === annotation.id;
-              
-              return (
-                <div
-                  key={annotation.id}
-                  className={`${styles.marker} ${styles.remoteMarker} ${isSelected ? styles.selected : ''} ${isHoveredRemote ? styles.hovered : ''}`}
-                  data-annotation-marker
-                  style={{
-                    left: `${annotation.x}%`,
-                    top: annotation.y,
-                    backgroundColor: isHoveredRemote ? undefined : userColor,
-                    opacity: annotation.status === 'completed' ? 0.5 : 1,
-                  }}
-                  onMouseEnter={() => setHoveredMarkerId(annotation.id)}
-                  onMouseLeave={() => setHoveredMarkerId(null)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedRemoteId(isSelected ? null : (annotation.remoteId || annotation.id));
-                  }}
-                >
-                  <span className={styles.markerUserTag}>
-                    {getUserInitials(userName)}
-                  </span>
-                  {/* Tooltip on hover */}
-                  {isHoveredRemote && (
-                    <div
-                      className={`${styles.markerTooltip} ${!isDarkMode ? styles.light : ""} ${styles.enter}`}
-                    >
-                      <div className={styles.markerTooltipHeader} style={{ borderColor: userColor }}>
-                        <span style={{ color: userColor, fontWeight: 600 }}>{userName}</span>
-                        {annotation.status === 'pending' && <span className={styles.statusPending}><IconClock size={10} /></span>}
-                        {annotation.status === 'processing' && <span className={styles.statusProcessing}><IconSpinner size={10} /></span>}
-                        {annotation.status === 'completed' && <span className={styles.statusCompleted}><IconCheckSmall size={10} /></span>}
-                      </div>
-                      <span className={styles.markerQuote}>
-                        {annotation.element}
-                      </span>
-                      <span className={styles.markerNote}>
-                        {annotation.comment}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-        </div>
-      )}
-
-      {/* Remote annotation detail modal */}
-      {selectedRemoteId && (() => {
-        const selectedAnnotation = remoteAnnotations.find(a => 
-          (a.remoteId || a.id) === selectedRemoteId || a.id === `remote-${selectedRemoteId}`
-        );
-        if (!selectedAnnotation) return null;
-        
-        const userName = selectedAnnotation.tokenOwner || 'Unknown';
-        const userColor = getUserColor(userName);
-        
-        return (
-          <div 
-            className={`${styles.remoteDetailOverlay} ${!isDarkMode ? styles.light : ''}`}
-            onClick={() => setSelectedRemoteId(null)}
-            data-feedback-toolbar
-          >
-            <div 
-              className={styles.remoteDetailModal}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className={styles.remoteDetailHeader}>
-                <span className={styles.remoteDetailUser} style={{ color: userColor }}>
-                  {userName}
-                </span>
-                <span className={styles.remoteDetailStatus}>
-                  {selectedAnnotation.status === 'pending' && <>⏳ Pending</>}
-                  {selectedAnnotation.status === 'processing' && <>🔄 Processing</>}
-                  {selectedAnnotation.status === 'completed' && <>✅ Done</>}
-                  {selectedAnnotation.status === 'rejected' && <>❌ Rejected</>}
-                  {selectedAnnotation.status === 'failed' && <>💥 Failed</>}
-                  {selectedAnnotation.status === 'interrupted' && <>⚠️ Interrupted</>}
-                </span>
-                <button 
-                  className={styles.remoteDetailClose}
-                  onClick={() => setSelectedRemoteId(null)}
-                >
-                  <IconXmark size={16} />
-                </button>
-              </div>
-              <div className={styles.remoteDetailElement}>
-                <strong>Element:</strong> {selectedAnnotation.element}
-              </div>
-              <div className={styles.remoteDetailComment}>
-                {selectedAnnotation.comment}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
       {/* Interactive overlay */}
       {isActive && (
         <div
@@ -3168,8 +2087,8 @@ export function PageFeedbackToolbarCSS({
                   top: hoverInfo.rect.top,
                   width: hoverInfo.rect.width,
                   height: hoverInfo.rect.height,
-                  borderColor: `${settings.annotationColor}80`,
-                  backgroundColor: `${settings.annotationColor}0A`,
+                  borderColor: `${annotationColor}80`,
+                  backgroundColor: `${annotationColor}0A`,
                 }}
               />
             )}
@@ -3195,8 +2114,8 @@ export function PageFeedbackToolbarCSS({
                     ...(isMulti
                       ? {}
                       : {
-                          borderColor: `${settings.annotationColor}99`,
-                          backgroundColor: `${settings.annotationColor}0D`,
+                          borderColor: `${annotationColor}99`,
+                          backgroundColor: `${annotationColor}0D`,
                         }),
                   }}
                 />
@@ -3234,8 +2153,8 @@ export function PageFeedbackToolbarCSS({
                     ...(pendingAnnotation.isMultiSelect
                       ? {}
                       : {
-                          borderColor: `${settings.annotationColor}99`,
-                          backgroundColor: `${settings.annotationColor}0D`,
+                          borderColor: `${annotationColor}99`,
+                          backgroundColor: `${annotationColor}0D`,
                         }),
                   }}
                 />
@@ -3248,7 +2167,7 @@ export function PageFeedbackToolbarCSS({
                   top: pendingAnnotation.clientY,
                   backgroundColor: pendingAnnotation.isMultiSelect
                     ? "#34C759"
-                    : settings.annotationColor,
+                    : annotationColor,
                 }}
               >
                 <IconPlus size={12} />
@@ -3266,7 +2185,7 @@ export function PageFeedbackToolbarCSS({
                       ? "Feedback for this group of elements..."
                       : "What should change?"
                 }
-                submitLabel={apiMode ? "SEND" : "Add"}
+                submitLabel="Add"
                 onSubmit={addAnnotation}
                 onCancel={cancelAnnotation}
                 isExiting={pendingExiting}
@@ -3275,7 +2194,7 @@ export function PageFeedbackToolbarCSS({
                 accentColor={
                   pendingAnnotation.isMultiSelect
                     ? "#34C759"
-                    : settings.annotationColor
+                    : annotationColor
                 }
                 style={{
                   // Popup is 280px wide, centered with translateX(-50%), so 140px each side
@@ -3311,8 +2230,8 @@ export function PageFeedbackToolbarCSS({
                     ...(editingAnnotation.isMultiSelect
                       ? {}
                       : {
-                          borderColor: `${settings.annotationColor}99`,
-                          backgroundColor: `${settings.annotationColor}0D`,
+                          borderColor: `${annotationColor}99`,
+                          backgroundColor: `${annotationColor}0D`,
                         }),
                   }}
                 />
@@ -3333,7 +2252,7 @@ export function PageFeedbackToolbarCSS({
                 accentColor={
                   editingAnnotation.isMultiSelect
                     ? "#34C759"
-                    : settings.annotationColor
+                    : annotationColor
                 }
                 style={(() => {
                   const markerY = editingAnnotation.isFixed

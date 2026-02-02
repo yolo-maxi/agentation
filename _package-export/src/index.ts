@@ -17,7 +17,7 @@ export { PageFeedbackToolbarCSS as VibeClaw } from "./components/page-toolbar-cs
 export { PageFeedbackToolbarCSS as Clawvibes } from "./components/page-toolbar-css"; // Legacy alias
 export { PageFeedbackToolbarCSS as Agentation } from "./components/page-toolbar-css"; // Legacy alias
 export { PageFeedbackToolbarCSS } from "./components/page-toolbar-css";
-export type { DemoAnnotation, AgentationProps, AgentationProps as ClawvibesProps, AgentationProps as VibeClawProps } from "./components/page-toolbar-css";
+export type { AgentationProps, AgentationProps as ClawvibesProps, AgentationProps as VibeClawProps } from "./components/page-toolbar-css";
 
 // Review Panel - for reviewing/approving annotations
 export { ReviewPanel } from "./components/review-panel";

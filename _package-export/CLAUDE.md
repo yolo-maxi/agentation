@@ -34,9 +34,6 @@ The component exposes these callback props (added in 1.2.0):
 - `onAnnotationAdd(annotation)` - when annotation created
 - `onAnnotationDelete(annotation)` - when annotation deleted
 - `onAnnotationUpdate(annotation)` - when annotation edited
-- `onAnnotationsClear(annotations[])` - when all cleared
-- `onCopy(markdown)` - when copy button clicked
-- `copyToClipboard` (boolean, default: true)
 
 **API stability**: These are public contracts. Changing signatures or removing callbacks is a breaking change requiring a major version bump.
 

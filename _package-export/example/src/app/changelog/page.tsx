@@ -55,8 +55,7 @@ const releases: Release[] = [
     version: "1.2.0",
     date: "January 22, 2026",
     changes: [
-      { type: "added", text: <><a href="/api" className="styled-link">Programmatic API</a>: <code>onAnnotationAdd</code>, <code>onAnnotationDelete</code>, <code>onAnnotationUpdate</code>, <code>onAnnotationsClear</code>, <code>onCopy</code> callbacks</> },
-      { type: "added", text: <><code>copyToClipboard</code> prop to control clipboard behavior</> },
+      { type: "added", text: <><a href="/api" className="styled-link">Programmatic API</a>: <code>onAnnotationAdd</code>, <code>onAnnotationDelete</code>, <code>onAnnotationUpdate</code> callbacks</> },
     ],
   },
   {

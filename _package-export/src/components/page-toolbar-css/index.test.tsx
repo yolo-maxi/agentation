@@ -1,24 +1,7 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render } from "@testing-library/react";
 import { PageFeedbackToolbarCSS } from "./index";
 import type { Annotation } from "../../types";
-
-// Mock clipboard API
-const mockClipboard = {
-  writeText: vi.fn().mockResolvedValue(undefined),
-};
-
-beforeEach(() => {
-  vi.stubGlobal("navigator", {
-    clipboard: mockClipboard,
-    userAgent: "test-agent",
-  });
-  mockClipboard.writeText.mockClear();
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
 
 describe("PageFeedbackToolbarCSS", () => {
   describe("onAnnotationAdd callback", () => {
@@ -46,37 +29,8 @@ describe("PageFeedbackToolbarCSS", () => {
     });
   });
 
-  describe("copyToClipboard prop", () => {
-    it("should default copyToClipboard to true", () => {
-      // Component should render without explicit copyToClipboard prop
-      expect(() => render(<PageFeedbackToolbarCSS />)).not.toThrow();
-    });
-
-    it("should accept copyToClipboard={false} without errors", () => {
-      expect(() =>
-        render(<PageFeedbackToolbarCSS copyToClipboard={false} />)
-      ).not.toThrow();
-    });
-
-    it("should accept copyToClipboard={true} without errors", () => {
-      expect(() =>
-        render(<PageFeedbackToolbarCSS copyToClipboard={true} />)
-      ).not.toThrow();
-    });
-  });
-
-  describe("combined props", () => {
-    it("should accept both onAnnotationAdd and copyToClipboard props", () => {
-      const handleAnnotation = vi.fn();
-      expect(() =>
-        render(
-          <PageFeedbackToolbarCSS
-            onAnnotationAdd={handleAnnotation}
-            copyToClipboard={false}
-          />
-        )
-      ).not.toThrow();
-    });
+  it("should render with default props", () => {
+    expect(() => render(<PageFeedbackToolbarCSS />)).not.toThrow();
   });
 });
 

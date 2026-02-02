@@ -15,7 +15,7 @@ const features: Feature[] = [
   {
     key: "text-selection",
     label: "Text",
-    caption: "Select text to annotate typos, content issues, or copy changes.\nThe quoted text is included in the output.",
+    caption: "Select text to annotate typos or content issues.\nThe quoted text is included in the annotation.",
   },
   {
     key: "element-click",
@@ -263,9 +263,7 @@ function TextSelectionDemo() {
           <div className="demo-toolbar-buttons">
             <ToolbarIcon icon="pause" />
             <ToolbarIcon icon="eye" disabled={!showMarker} />
-            <ToolbarIcon icon="copy" disabled={!showMarker} />
-            <ToolbarIcon icon="trash" disabled={!showMarker} />
-            <ToolbarIcon icon="settings" />
+            <ToolbarIcon icon="close" />
             <div className="demo-toolbar-divider" />
             <ToolbarIcon icon="close" />
           </div>
@@ -473,9 +471,7 @@ function ElementClickDemo() {
           <div className="demo-toolbar-buttons">
             <ToolbarIcon icon="pause" />
             <ToolbarIcon icon="eye" disabled={!showMarker} />
-            <ToolbarIcon icon="copy" disabled={!showMarker} />
-            <ToolbarIcon icon="trash" disabled={!showMarker} />
-            <ToolbarIcon icon="settings" />
+            <ToolbarIcon icon="close" />
             <div className="demo-toolbar-divider" />
             <ToolbarIcon icon="close" />
           </div>
@@ -686,9 +682,7 @@ function MultiSelectDemo() {
           <div className="demo-toolbar-buttons">
             <ToolbarIcon icon="pause" />
             <ToolbarIcon icon="eye" disabled={!showMarkers} />
-            <ToolbarIcon icon="copy" disabled={!showMarkers} />
-            <ToolbarIcon icon="trash" disabled={!showMarkers} />
-            <ToolbarIcon icon="settings" />
+            <ToolbarIcon icon="close" />
             <div className="demo-toolbar-divider" />
             <ToolbarIcon icon="close" />
           </div>
@@ -917,9 +911,7 @@ function AreaSelectionDemo() {
           <div className="demo-toolbar-buttons">
             <ToolbarIcon icon="pause" />
             <ToolbarIcon icon="eye" disabled={!showMarker} />
-            <ToolbarIcon icon="copy" disabled={!showMarker} />
-            <ToolbarIcon icon="trash" disabled={!showMarker} />
-            <ToolbarIcon icon="settings" />
+            <ToolbarIcon icon="close" />
             <div className="demo-toolbar-divider" />
             <ToolbarIcon icon="close" />
           </div>
@@ -1145,9 +1137,7 @@ function AnimationPauseDemo() {
               <ToolbarIcon icon={isPaused ? "play" : "pause"} active={isPaused} />
             </div>
             <ToolbarIcon icon="eye" disabled={!showMarker} />
-            <ToolbarIcon icon="copy" disabled={!showMarker} />
-            <ToolbarIcon icon="trash" disabled={!showMarker} />
-            <ToolbarIcon icon="settings" />
+            <ToolbarIcon icon="close" />
             <div className="demo-toolbar-divider" />
             <ToolbarIcon icon="close" />
           </div>
@@ -1204,27 +1194,6 @@ function ToolbarIcon({ icon, active = false, disabled = false }: { icon: string;
         <path d="M12 14.8261C13.5608 14.8261 14.8261 13.5608 14.8261 12C14.8261 10.4392 13.5608 9.17392 12 9.17392C10.4392 9.17392 9.17391 10.4392 9.17391 12C9.17391 13.5608 10.4392 14.8261 12 14.8261Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     ),
-    copy: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M4.75 11.25C4.75 10.4216 5.42157 9.75 6.25 9.75H12.75C13.5784 9.75 14.25 10.4216 14.25 11.25V17.75C14.25 18.5784 13.5784 19.25 12.75 19.25H6.25C5.42157 19.25 4.75 18.5784 4.75 17.75V11.25Z" stroke="currentColor" strokeWidth="1.5"/>
-        <path d="M17.25 14.25H17.75C18.5784 14.25 19.25 13.5784 19.25 12.75V6.25C19.25 5.42157 18.5784 4.75 17.75 4.75H11.25C10.4216 4.75 9.75 5.42157 9.75 6.25V6.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    trash: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M10 11.5L10.125 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M14 11.5L13.87 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M9 7.5V6.25C9 5.42157 9.67157 4.75 10.5 4.75H13.5C14.3284 4.75 15 5.42157 15 6.25V7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <path d="M5.5 7.75H18.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M6.75 7.75L7.11691 16.189C7.16369 17.2649 7.18708 17.8028 7.41136 18.2118C7.60875 18.5717 7.91211 18.8621 8.28026 19.0437C8.69854 19.25 9.23699 19.25 10.3139 19.25H13.6861C14.763 19.25 15.3015 19.25 15.7197 19.0437C16.0879 18.8621 16.3912 18.5717 16.5886 18.2118C16.8129 17.8028 16.8363 17.2649 16.8831 16.189L17.25 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      </svg>
-    ),
-    settings: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M10.6504 5.81117C10.9939 4.39628 13.0061 4.39628 13.3496 5.81117C13.5715 6.72517 14.6187 7.15891 15.4219 6.66952C16.6652 5.91193 18.0881 7.33479 17.3305 8.57815C16.8411 9.38134 17.2748 10.4285 18.1888 10.6504C19.6037 10.9939 19.6037 13.0061 18.1888 13.3496C17.2748 13.5715 16.8411 14.6187 17.3305 15.4219C18.0881 16.6652 16.6652 18.0881 15.4219 17.3305C14.6187 16.8411 13.5715 17.2748 13.3496 18.1888C13.0061 19.6037 10.9939 19.6037 10.6504 18.1888C10.4285 17.2748 9.38135 16.8411 8.57815 17.3305C7.33479 18.0881 5.91193 16.6652 6.66952 15.4219C7.15891 14.6187 6.72517 13.5715 5.81117 13.3496C4.39628 13.0061 4.39628 10.9939 5.81117 10.6504C6.72517 10.4285 7.15891 9.38134 6.66952 8.57815C5.91193 7.33479 7.33479 5.91192 8.57815 6.66952C9.38135 7.15891 10.4285 6.72517 10.6504 5.81117Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-        <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.5"/>
-      </svg>
-    ),
     close: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M16.25 16.25L7.75 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1238,303 +1207,6 @@ function ToolbarIcon({ icon, active = false, disabled = false }: { icon: string;
       <div className={`demo-toolbar-icon ${animating ? "animating" : ""}`}>
         {icons[icon]}
       </div>
-    </div>
-  );
-}
-
-// ============================================================
-// SETTINGS DEMO (exported)
-// ============================================================
-const OUTPUT_DETAIL_OPTIONS = ["Compact", "Standard", "Detailed", "Forensic"];
-const COLOR_OPTIONS = [
-  { value: "#AF52DE", label: "Purple" },
-  { value: "#3c82f7", label: "Blue" },
-  { value: "#5AC8FA", label: "Cyan" },
-  { value: "#34C759", label: "Green" },
-  { value: "#FFD60A", label: "Yellow" },
-  { value: "#FF9500", label: "Orange" },
-  { value: "#FF3B30", label: "Red" },
-];
-
-export function SettingsDemo() {
-  const [showPanel, setShowPanel] = useState(true);
-  const [isDarkMode, setIsDarkMode] = useState(true);
-  const [outputDetail, setOutputDetail] = useState(1); // Standard
-  const [selectedColor, setSelectedColor] = useState(1); // Blue
-  const [clearAfterCopy, setClearAfterCopy] = useState(false);
-  const [blockInteractions, setBlockInteractions] = useState(false);
-  const [cursorPos, setCursorPos] = useState({ x: 190, y: 20 });
-  const [isClicking, setIsClicking] = useState(false);
-  const [activeCaption, setActiveCaption] = useState<string | null>("output");
-
-  // Refs for measuring element positions
-  const containerRef = useRef<HTMLDivElement>(null);
-  const cycleBtnRef = useRef<HTMLButtonElement>(null);
-  const greenColorRef = useRef<HTMLDivElement>(null);
-  const clearCheckboxRef = useRef<HTMLSpanElement>(null);
-  const blockCheckboxRef = useRef<HTMLSpanElement>(null);
-  const themeToggleRef = useRef<HTMLButtonElement>(null);
-
-  // Measured positions
-  const positionsRef = useRef({
-    cycleBtn: { x: 178, y: 82 },
-    greenColor: { x: 106, y: 142 },
-    clearCheckbox: { x: 24, y: 188 },
-    blockCheckbox: { x: 24, y: 210 },
-    themeToggle: { x: 194, y: 42 },
-  });
-
-  // Measure positions
-  const measurePositions = () => {
-    if (!containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-
-    const getCenter = (ref: React.RefObject<HTMLElement | null>) => {
-      if (!ref.current) return null;
-      const rect = ref.current.getBoundingClientRect();
-      return {
-        x: rect.left - containerRect.left + rect.width / 2,
-        y: rect.top - containerRect.top + rect.height / 2,
-      };
-    };
-
-    const cyclePos = getCenter(cycleBtnRef);
-    const greenPos = getCenter(greenColorRef);
-    const clearPos = getCenter(clearCheckboxRef);
-    const blockPos = getCenter(blockCheckboxRef);
-    const themePos = getCenter(themeToggleRef);
-
-    if (cyclePos) positionsRef.current.cycleBtn = cyclePos;
-    if (greenPos) positionsRef.current.greenColor = greenPos;
-    if (clearPos) positionsRef.current.clearCheckbox = clearPos;
-    if (blockPos) positionsRef.current.blockCheckbox = blockPos;
-    if (themePos) positionsRef.current.themeToggle = themePos;
-  };
-
-  // Measure on mount and resize
-  useEffect(() => {
-    const timer = setTimeout(measurePositions, 100);
-    window.addEventListener('resize', measurePositions);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', measurePositions);
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const click = async () => {
-      setIsClicking(true);
-      await delay(100);
-      if (!cancelled) setIsClicking(false);
-    };
-
-    const runAnimation = async () => {
-      // Reset state
-      setShowPanel(true);
-      setIsDarkMode(true);
-      setOutputDetail(1);
-      setSelectedColor(1);
-      setClearAfterCopy(false);
-      setBlockInteractions(false);
-      setActiveCaption("output");
-
-      // Re-measure positions each cycle
-      await delay(100);
-      measurePositions();
-      const pos = positionsRef.current;
-      setCursorPos(pos.cycleBtn);
-      await delay(1400);
-      if (cancelled) return;
-
-      // Click output detail to cycle to "Detailed"
-      await click();
-      setOutputDetail(2);
-      await delay(2800);
-      if (cancelled) return;
-
-      // Click green color (4th option)
-      setActiveCaption("color");
-      setCursorPos(pos.greenColor);
-      await delay(1000);
-      if (cancelled) return;
-      await click();
-      setSelectedColor(3);
-      await delay(2800);
-      if (cancelled) return;
-
-      // Click "Clear after output" checkbox
-      setActiveCaption("clear");
-      setCursorPos(pos.clearCheckbox);
-      await delay(1000);
-      if (cancelled) return;
-      await click();
-      setClearAfterCopy(true);
-      await delay(2800);
-      if (cancelled) return;
-
-      // Click "Block page interactions" checkbox
-      setActiveCaption("block");
-      setCursorPos(pos.blockCheckbox);
-      await delay(1000);
-      if (cancelled) return;
-      await click();
-      setBlockInteractions(true);
-      await delay(2800);
-      if (cancelled) return;
-
-      // Click theme toggle (dark/light)
-      setActiveCaption("theme");
-      setCursorPos(pos.themeToggle);
-      await delay(1000);
-      if (cancelled) return;
-      await click();
-      setIsDarkMode(false);
-      await delay(3000);
-      if (cancelled) return;
-
-      // Pause before loop
-      await delay(1500);
-    };
-
-    runAnimation();
-    let interval = setInterval(runAnimation, 26000);
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        cancelled = true;
-        clearInterval(interval);
-        setTimeout(() => {
-          cancelled = false;
-          runAnimation();
-          interval = setInterval(runAnimation, 26000);
-        }, 100);
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, []);
-
-  const currentColor = COLOR_OPTIONS[selectedColor].value;
-
-  const captions: Record<string, string> = {
-    output: "Choose how much detail to include in your output.",
-    color: "Pick a marker colour that stands out against your design.",
-    clear: "Automatically clear all annotations after copying.",
-    block: "Prevent accidental clicks on page elements while annotating.",
-    theme: "Switch between dark and light mode.",
-  };
-
-  return (
-    <div className="sd-outer">
-      <div className="sd-container" ref={containerRef}>
-        {/* Settings Panel - exact replica (user clicks disabled, Agentation still works) */}
-        <div
-          className={`sd-panel ${showPanel ? "visible" : ""} ${isDarkMode ? "dark" : "light"}`}
-          onClickCapture={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="sd-header">
-            <span className="sd-brand">
-              <span className="sd-brand-slash" style={{ color: currentColor }}>/</span>
-              agentation
-            </span>
-            <span className="sd-version">v0.3.2</span>
-            <button ref={themeToggleRef} className="sd-theme-toggle" onClick={() => setIsDarkMode(!isDarkMode)}>
-              {isDarkMode ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
-                  <path d="M12 2V4M12 20V22M4 12H2M22 12H20M5.64 5.64L4.22 4.22M19.78 19.78L18.36 18.36M5.64 18.36L4.22 19.78M19.78 4.22L18.36 5.64" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </button>
-          </div>
-
-          {/* Output Detail */}
-          <div className="sd-section">
-            <div className="sd-row">
-              <span className="sd-label">Output Detail</span>
-              <button ref={cycleBtnRef} className="sd-cycle-btn">
-                <span className="sd-cycle-text" key={outputDetail}>{OUTPUT_DETAIL_OPTIONS[outputDetail]}</span>
-                <span className="sd-cycle-dots">
-                  {OUTPUT_DETAIL_OPTIONS.map((_, i) => (
-                    <span key={i} className={`sd-cycle-dot ${outputDetail === i ? "active" : ""}`} />
-                  ))}
-                </span>
-              </button>
-            </div>
-          </div>
-
-          {/* Marker Colour */}
-          <div className="sd-section">
-            <span className="sd-label sd-label-marker">Marker Colour</span>
-            <div className="sd-colors">
-              {COLOR_OPTIONS.map((color, i) => (
-                <div
-                  key={color.value}
-                  ref={i === 3 ? greenColorRef : undefined}
-                  className={`sd-color-ring ${selectedColor === i ? "selected" : ""}`}
-                  style={{ borderColor: selectedColor === i ? color.value : "transparent" }}
-                >
-                  <div
-                    className={`sd-color ${selectedColor === i ? "selected" : ""}`}
-                    style={{ backgroundColor: color.value }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Checkboxes */}
-          <div className="sd-section">
-            <label className="sd-checkbox-row">
-              <span ref={clearCheckboxRef} className={`sd-checkbox ${clearAfterCopy ? "checked" : ""}`}>
-                {clearAfterCopy && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12l5 5L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-              </span>
-              <span className="sd-checkbox-label">Clear after output</span>
-            </label>
-            <label className="sd-checkbox-row">
-              <span ref={blockCheckboxRef} className={`sd-checkbox ${blockInteractions ? "checked" : ""}`}>
-                {blockInteractions && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12l5 5L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
-              </span>
-              <span className="sd-checkbox-label">Block page interactions</span>
-            </label>
-          </div>
-        </div>
-
-        {/* Cursor */}
-        <div className={`sd-cursor ${isClicking ? "clicking" : ""}`} style={{ left: cursorPos.x, top: cursorPos.y }}>
-          <svg height="24" width="24" viewBox="0 0 32 32">
-            <g fill="none" fillRule="evenodd" transform="translate(10 7)">
-              <path d="m6.148 18.473 1.863-1.003 1.615-.839-2.568-4.816h4.332l-11.379-11.408v16.015l3.316-3.221z" fill="#fff"/>
-              <path d="m6.431 17 1.765-.941-2.775-5.202h3.604l-8.025-8.043v11.188l2.53-2.442z" fill="#000"/>
-            </g>
-          </svg>
-        </div>
-      </div>
-
-      {/* Caption - outside container like other demos */}
-      <p key={activeCaption} style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'rgba(0,0,0,0.5)', whiteSpace: 'pre-line', lineHeight: 1.3, animation: 'fadeIn 0.3s ease' }}>
-        {activeCaption ? captions[activeCaption] : captions.output}
-      </p>
     </div>
   );
 }
@@ -2044,9 +1716,7 @@ export function ComputedStylesDemo() {
             <div className="demo-toolbar-buttons">
               <ToolbarIcon icon="pause" />
               <ToolbarIcon icon="eye" disabled={!showMarker} />
-              <ToolbarIcon icon="copy" disabled={!showMarker} />
-              <ToolbarIcon icon="trash" disabled={!showMarker} />
-              <ToolbarIcon icon="settings" />
+              <ToolbarIcon icon="close" />
               <div className="demo-toolbar-divider" />
               <ToolbarIcon icon="close" />
             </div>

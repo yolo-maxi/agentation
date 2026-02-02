@@ -10,6 +10,8 @@
 export const AGENTATION_API = "https://agentation.repo.box";
 const STORAGE_KEY = "agentation_edit_token";
 
+const resolveBaseUrl = (baseUrl?: string) => baseUrl || AGENTATION_API;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -80,9 +82,9 @@ export function checkAndSaveEditToken(): string | null {
 }
 
 /** Validate token with backend */
-export async function validateToken(token: string): Promise<TokenValidation> {
+export async function validateToken(token: string, baseUrl?: string): Promise<TokenValidation> {
   try {
-    const res = await fetch(`${AGENTATION_API}/api/validate-token?token=${encodeURIComponent(token)}`);
+    const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/validate-token?token=${encodeURIComponent(token)}`);
     return await res.json();
   } catch {
     return { valid: false };
@@ -106,9 +108,9 @@ export function getEditToken(): string | null {
 // =============================================================================
 
 /** Submit single annotation to backend */
-export async function submitAnnotation(token: string, annotation: AnnotationInput): Promise<{ success: boolean; id?: string; error?: string }> {
+export async function submitAnnotation(token: string, annotation: AnnotationInput, baseUrl?: string): Promise<{ success: boolean; id?: string; error?: string }> {
   try {
-    const res = await fetch(`${AGENTATION_API}/api/annotations`, {
+    const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/annotations`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -129,12 +131,12 @@ export async function submitAnnotation(token: string, annotation: AnnotationInpu
 }
 
 /** Submit batch of annotations to backend (API mode) */
-export async function submitAnnotations(token: string, annotations: AnnotationInput[]): Promise<SendResult[]> {
+export async function submitAnnotations(token: string, annotations: AnnotationInput[], baseUrl?: string): Promise<SendResult[]> {
   const results: SendResult[] = [];
   
   for (const annotation of annotations) {
     try {
-      const res = await fetch(`${AGENTATION_API}/api/annotations`, {
+      const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/annotations`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -173,9 +175,9 @@ export async function submitAnnotations(token: string, annotations: AnnotationIn
 // =============================================================================
 
 /** Fetch all annotations for the project */
-export async function fetchAnnotations(token: string, all: boolean = true): Promise<AnnotationSummary[]> {
+export async function fetchAnnotations(token: string, all: boolean = true, baseUrl?: string): Promise<AnnotationSummary[]> {
   try {
-    const url = `${AGENTATION_API}/api/annotations?editToken=${encodeURIComponent(token)}&all=${all}`;
+    const url = `${resolveBaseUrl(baseUrl)}/api/annotations?editToken=${encodeURIComponent(token)}&all=${all}`;
     const res = await fetch(url, {
       headers: { "Authorization": `Bearer ${token}` },
     });
@@ -188,9 +190,9 @@ export async function fetchAnnotations(token: string, all: boolean = true): Prom
 }
 
 /** Fetch single annotation detail */
-export async function fetchAnnotation(token: string, id: string): Promise<AnnotationSummary | null> {
+export async function fetchAnnotation(token: string, id: string, baseUrl?: string): Promise<AnnotationSummary | null> {
   try {
-    const res = await fetch(`${AGENTATION_API}/api/annotations/${id}?editToken=${encodeURIComponent(token)}`, {
+    const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/annotations/${id}?editToken=${encodeURIComponent(token)}`, {
       headers: { "Authorization": `Bearer ${token}` },
     });
     if (!res.ok) return null;
@@ -212,9 +214,9 @@ export interface ActionResult {
 }
 
 /** Approve an annotation */
-export async function approveAnnotation(token: string, id: string): Promise<ActionResult> {
+export async function approveAnnotation(token: string, id: string, baseUrl?: string): Promise<ActionResult> {
   try {
-    const res = await fetch(`${AGENTATION_API}/api/annotations/${id}/approve`, {
+    const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/annotations/${id}/approve`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -229,9 +231,9 @@ export async function approveAnnotation(token: string, id: string): Promise<Acti
 }
 
 /** Reject an annotation */
-export async function rejectAnnotation(token: string, id: string, reason?: string): Promise<ActionResult> {
+export async function rejectAnnotation(token: string, id: string, reason?: string, baseUrl?: string): Promise<ActionResult> {
   try {
-    const res = await fetch(`${AGENTATION_API}/api/annotations/${id}/reject`, {
+    const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/annotations/${id}/reject`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -246,9 +248,9 @@ export async function rejectAnnotation(token: string, id: string, reason?: strin
 }
 
 /** Request revision on an annotation */
-export async function reviseAnnotation(token: string, id: string, prompt: string): Promise<ActionResult> {
+export async function reviseAnnotation(token: string, id: string, prompt: string, baseUrl?: string): Promise<ActionResult> {
   try {
-    const res = await fetch(`${AGENTATION_API}/api/annotations/${id}/revise`, {
+    const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/annotations/${id}/revise`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -263,9 +265,9 @@ export async function reviseAnnotation(token: string, id: string, prompt: string
 }
 
 /** Cancel/archive an annotation (admin action) */
-export async function cancelAnnotation(token: string, id: string, note?: string): Promise<ActionResult> {
+export async function cancelAnnotation(token: string, id: string, note?: string, baseUrl?: string): Promise<ActionResult> {
   try {
-    const res = await fetch(`${AGENTATION_API}/api/admin/annotations/${id}?adminToken=${token}`, {
+    const res = await fetch(`${resolveBaseUrl(baseUrl)}/api/admin/annotations/${id}?adminToken=${token}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: "rejected", reviewNote: note || "Cancelled by user" }),
