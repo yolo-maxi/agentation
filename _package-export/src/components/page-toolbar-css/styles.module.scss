@@ -4,6 +4,7 @@
 $blue: #3c82f7;
 $red: #ff3b30;
 $green: #34c759;
+$panel-width: 384px;
 
 // =============================================================================
 // Animation Keyframes
@@ -241,6 +242,10 @@ $green: #34c759;
             height: auto;
         }
     }
+
+    &.reviewExpanded {
+        width: $panel-width;
+    }
 }
 
 .toggleContent {
@@ -293,9 +298,10 @@ $green: #34c759;
 .controlsRow {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 0.375rem;
     width: 100%;
+    padding: 0 0.125rem 0.125rem;
 }
 
 .userHandle {

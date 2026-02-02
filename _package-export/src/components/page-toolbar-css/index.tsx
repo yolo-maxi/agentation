@@ -444,7 +444,6 @@ export function PageFeedbackToolbarCSS({
       setPendingAnnotation(null);
       setEditingAnnotation(null);
       setHoverInfo(null);
-      setShowSettings(false); // Close settings when toolbar closes
       setIsReviewOpen(false);
       if (isFrozen) {
         unfreezeAnimations();
@@ -1584,7 +1583,7 @@ export function PageFeedbackToolbarCSS({
       >
         {/* Morphing container */}
         <div
-          className={`${styles.toolbarContainer} ${!isDarkMode ? styles.light : ""} ${isActive ? styles.expanded : styles.collapsed} ${showEntranceAnimation ? styles.entrance : ""} ${isDraggingToolbar ? styles.dragging : ""}`}
+          className={`${styles.toolbarContainer} ${!isDarkMode ? styles.light : ""} ${isActive ? styles.expanded : styles.collapsed} ${showEntranceAnimation ? styles.entrance : ""} ${isDraggingToolbar ? styles.dragging : ""} ${isReviewOpen ? styles.reviewExpanded : ""}`}
           onClick={
             !isActive
               ? (e) => {

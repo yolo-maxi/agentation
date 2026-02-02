@@ -136,9 +136,10 @@ $light-button-hover: #e5e7eb;
   position: static;
   bottom: auto;
   right: auto;
-  width: 384px;
+  width: 100%;
   max-height: 50vh;
   margin-bottom: 10px;
+  align-self: stretch;
 }
 
 // =============================================================================
